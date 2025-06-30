@@ -27,7 +27,7 @@ except Exception as e:
     exit()
 
 # =============================================
-# 2. PLANTILLA HTML CON PAGINACIÓN Y FILTRO DINÁMICO CORREGIDO
+# 2. PLANTILLA HTML CON PAGINACIÓN, FILTRO Y SCROLL-TO-TOP
 # =============================================
 html_template = """
 <!DOCTYPE html>
@@ -52,7 +52,7 @@ html_template = """
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="top">
         <h1 class="text-center mb-4 text-primary">🎁 Catálogo de Ofertas 🔥</h1>
 
         <!-- Buscador -->
@@ -106,9 +106,9 @@ html_template = """
         let currentPage = 1;
 
         function renderPage(items, page) {
-            // Primero ocultar todos
+            // Ocultar todos
             allItems.forEach(el => el.style.display = 'none');
-            // Luego mostrar solo los de la página actual
+            // Mostrar página actual
             const start = (page - 1) * pageSize;
             items.slice(start, start + pageSize).forEach(el => el.style.display = 'block');
         }
@@ -120,17 +120,18 @@ html_template = """
             const createLi = (label, page, disabled=false, active=false) => {
                 const li = document.createElement('li');
                 li.className = `page-item${disabled?' disabled':''}${active?' active':''}`;
-                const a = document.createElement('a');
-                a.className = 'page-link'; a.href='#'; a.innerText = label;
-                a.addEventListener('click', e => { e.preventDefault(); if(!disabled){ currentPage=page; update(); }});
+                const a = document.createElement('a'); a.className = 'page-link'; a.href='#'; a.innerText = label;
+                a.addEventListener('click', e => { e.preventDefault(); if(!disabled){ currentPage = page; update(); scrollToTop(); }});
                 li.appendChild(a);
                 return li;
             };
             container.appendChild(createLi('«', currentPage-1, currentPage===1));
-            for(let p=1; p<=totalPages; p++){
-                container.appendChild(createLi(p, p, false, currentPage===p));
-            }
+            for (let p = 1; p <= totalPages; p++) container.appendChild(createLi(p, p, false, currentPage===p));
             container.appendChild(createLi('»', currentPage+1, currentPage===totalPages));
+        }
+
+        function scrollToTop() {
+            document.getElementById('top').scrollIntoView({ behavior: 'smooth' });
         }
 
         function update() {
@@ -138,18 +139,18 @@ html_template = """
             renderPagination(filtered);
         }
 
-        document.getElementById('filtro').addEventListener('input', function(){
+        document.getElementById('filtro').addEventListener('input', function() {
             const term = this.value.toLowerCase();
             filtered = allItems.filter(el => {
-                const txt = [
+                return [
                     el.querySelector('.nombre').innerText,
                     el.querySelector('.descripcion').innerText,
                     el.querySelector('.precio').innerText
-                ].join(' ').toLowerCase();
-                return txt.includes(term);
+                ].join(' ').toLowerCase().includes(term);
             });
             currentPage = 1;
             update();
+            scrollToTop();
         });
 
         // Inicialización
