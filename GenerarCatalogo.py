@@ -6,7 +6,7 @@ import webbrowser
 # =============================================
 # CONFIGURACIÓN DE RUTAS (¡AJUSTA ESTO!)
 # =============================================
-SCRIPT_DIR = r"C:\Users\Lpz_p\Desktop\Catalogo"
+SCRIPT_DIR = r"C:\Users\Lpz_p\Desktop\Mi Proyecto Gib\Catalogo"
 EXCEL_PATH = os.path.join(SCRIPT_DIR, "productos.xlsx")
 OUTPUT_HTML = os.path.join(SCRIPT_DIR, "index.html")
 
