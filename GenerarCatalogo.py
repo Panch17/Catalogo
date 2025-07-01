@@ -44,6 +44,7 @@ html_template = """
     .text-decoration-line-through { text-decoration: line-through; }
   </style>
 </head>
+<script src="https://cdn.counter.dev/script.js" data-id="a385688b-fca9-43be-90f6-bf9fff769d46" data-utcoffset="-7"></script>
 <body>
   <div class="container" id="top">
     <h1 class="text-center mb-4 text-primary">🎁 Catálogo de Ofertas 🔥</h1>
