@@ -167,17 +167,28 @@ html_template = """
       renderPagination(filtered);
     }
 
+    function removeAccents(str) {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
     document.getElementById('filtro').addEventListener('input', function() {
-      const term = this.value.toLowerCase();
+      const term = removeAccents(this.value.toLowerCase());
+
       filtered = allItems.filter(el => {
-        return [
+        const texto = [
           el.querySelector('.nombre').innerText,
           el.querySelector('.descripcion').innerText,
           el.querySelector('.precio').innerText
-        ].join(' ').toLowerCase().includes(term);
+        ].join(' ').toLowerCase();
+
+        return removeAccents(texto).includes(term);
       });
-      currentPage = 1; update(); scrollToTop();
+
+      currentPage = 1;
+      update();
+      scrollToTop();
     });
+
 
     // Inicializar
     update();
