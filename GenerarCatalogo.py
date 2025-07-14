@@ -1,7 +1,6 @@
 import pandas as pd
 from jinja2 import Template
 import os
-from urllib.parse import quote  # Para codificar el texto en URLs
 import webbrowser
 
 # =============================================
@@ -25,16 +24,16 @@ except Exception as e:
     exit()
 
 # =============================================
-# 2. PLANTILLA HTML CON PAGINACIÓN CON SOLO 5 BOTONES, FILTRO Y MODAL DE IMAGEN
+# 2. PLANTILLA HTML CON PAGINACIÓN, FILTRO, MODALES Y BOTÓN OCULTO CON CONTRASEÑA
 # =============================================
 html_template = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Catálogo de Productos</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
     body { background-color: #f8f9fa; padding-top: 20px; }
     .card { transition: transform 0.3s; border: none; border-radius: 10px; }
@@ -42,20 +41,22 @@ html_template = """
     .card-img-top { cursor: pointer; border-radius: 10px 10px 0 0; object-fit: contain; height: 200px; padding: 10px; }
     .whatsapp-btn { background-color: #25D366 !important; border-color: #25D366 !important; }
     .text-decoration-line-through { text-decoration: line-through; }
+    #hiddenTrigger { cursor: default; user-select: none; }
   </style>
 </head>
-<script src="https://cdn.counter.dev/script.js" data-id="a385688b-fca9-43be-90f6-bf9fff769d46" data-utcoffset="-7"></script>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9490673865072179"
-     crossorigin="anonymous"></script>
 <body>
   <div class="container" id="top">
-    <h1 class="text-center mb-4 text-primary">🎁 Catálogo de Ofertas 🔥</h1>
+    <!-- Título con botón oculto 🎁 -->
+    <h1 class="text-center mb-4 text-primary" id="hiddenTrigger" title="Haz clic 5 veces rápido aquí">
+      🎁 Catálogo de Ofertas 🔥
+    </h1>
 
-    <!-- Buscador -->
+    <!-- Buscador principal -->
     <div class="mb-4 text-center">
-      <input id="filtro" type="text" class="form-control w-50 d-inline" placeholder="🔍 Buscar productos...">
+      <input id="filtro" type="text" class="form-control w-50 d-inline" placeholder="🔍 Buscar productos..." />
     </div>
 
+    <!-- Productos -->
     <div class="row" id="productos">
       {% for producto in productos %}
       <div class="col-md-4 mb-4 producto">
@@ -80,34 +81,54 @@ html_template = """
       {% endfor %}
     </div>
 
-    <!-- Paginación -->
+    <!-- Paginación principal -->
     <nav>
       <ul class="pagination justify-content-center" id="paginacion"></ul>
     </nav>
   </div>
 
-  <!-- Modal Imagen -->
+  <!-- Modal Imagen Ampliada -->
   <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content bg-transparent border-0">
-        <img id="modalImage" src="" class="img-fluid rounded" alt="Imagen ampliada">
+        <img id="modalImage" src="" class="img-fluid rounded" alt="Imagen ampliada" />
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Lista con filtro -->
+  <div class="modal fade" id="listaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Lista de Productos</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body" id="modalListaBody" style="max-height: 70vh; overflow-y: auto;">
+          <input type="text" id="filtroModal" class="form-control mb-3" placeholder="🔍 Buscar en la lista..." />
+          <!-- La tabla se inyectará aquí -->
+        </div>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
   <script>
+    // Variables para paginación y filtrado
     const allItems = Array.from(document.querySelectorAll('.producto'));
     let filtered = [...allItems];
     const pageSize = 18;
     let currentPage = 1;
 
+    // Renderiza página principal
     function renderPage(items, page) {
       allItems.forEach(el => el.style.display = 'none');
       const start = (page - 1) * pageSize;
       items.slice(start, start + pageSize).forEach(el => el.style.display = 'block');
     }
 
+    // Renderiza paginación principal
     function renderPagination(items) {
       const totalPages = Math.ceil(items.length / pageSize) || 1;
       const container = document.getElementById('paginacion');
@@ -121,10 +142,8 @@ html_template = """
         return li;
       };
 
-      // Flecha anterior
       container.appendChild(makeLi('«', currentPage - 1, currentPage === 1));
 
-      // Ventana de 5 botones
       const maxButtons = 5;
       const half = Math.floor(maxButtons / 2);
       let startPage = Math.max(1, currentPage - half);
@@ -154,23 +173,26 @@ html_template = """
         container.appendChild(makeLi(totalPages, totalPages, false, currentPage === totalPages));
       }
 
-      // Flecha siguiente
       container.appendChild(makeLi('»', currentPage + 1, currentPage === totalPages));
     }
 
+    // Scroll suave al top
     function scrollToTop() {
       document.getElementById('top').scrollIntoView({ behavior: 'smooth' });
     }
 
+    // Actualiza la lista principal
     function update() {
       renderPage(filtered, currentPage);
       renderPagination(filtered);
     }
 
+    // Remueve acentos para filtro insensible
     function removeAccents(str) {
-  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-}
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
 
+    // Evento filtro principal
     document.getElementById('filtro').addEventListener('input', function() {
       const term = removeAccents(this.value.toLowerCase());
 
@@ -189,16 +211,104 @@ html_template = """
       scrollToTop();
     });
 
-
-    // Inicializar
+    // Inicializar lista principal
     update();
-    // Modal
+
+    // Modal imagen grande
     document.querySelectorAll('.card-img-top').forEach(img => {
       img.addEventListener('click', () => {
-        document.getElementById('modalImage').src = img.src;
+        const modalImage = document.getElementById('modalImage');
+        modalImage.src = img.src;
         new bootstrap.Modal(document.getElementById('imageModal')).show();
       });
     });
+
+    // BOTÓN OCULTO: Detectar 5 clics en 🎁 para pedir contraseña y mostrar lista
+    const hiddenTrigger = document.getElementById('hiddenTrigger');
+    let clickCount = 0;
+    let clickTimeout;
+
+    hiddenTrigger.addEventListener('click', () => {
+      clickCount++;
+      clearTimeout(clickTimeout);
+      clickTimeout = setTimeout(() => {
+        clickCount = 0;
+      }, 2000); // Resetea contador después de 2 segundos sin clics
+
+      if (clickCount === 5) {
+        clickCount = 0;
+        const password = prompt("Ingrese la contraseña:");
+        if(password === "Zombie") {
+          mostrarLista();
+        } else {
+          alert("Contraseña incorrecta");
+        }
+      }
+    });
+
+    // Función para generar y mostrar tabla completa en modal lista
+    function mostrarLista() {
+      const modalBody = document.getElementById('modalListaBody');
+      // Limpiar antes
+      modalBody.querySelector('table')?.remove();
+
+      // Crear tabla con Bootstrap y scroll vertical limitado
+      const table = document.createElement('table');
+      table.className = 'table table-striped table-hover table-sm';
+      table.style.width = '100%';
+
+      // Encabezado tabla
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th>Nombre</th>
+          <th>Precio</th>
+          <th>Link Compra</th>
+          <th>Caja</th>
+        </tr>
+      `;
+      table.appendChild(thead);
+
+      // Cuerpo tabla
+      const tbody = document.createElement('tbody');
+
+      // Los datos vienen de Jinja, vamos a usar la variable productos
+      const productos = {{ productos|tojson|safe }};
+      productos.forEach(p => {
+        const tr = document.createElement('tr');
+
+        // LinkCompra con etiqueta <a> que abre en nueva pestaña
+        const linkCompraHTML = p.LinkCompra ? `<a href="${p.LinkCompra}" target="_blank" rel="noopener noreferrer">Abrir enlace</a>` : '';
+
+        tr.innerHTML = `
+          <td>${p.Nombre}</td>
+          <td>$${p.Precio.toFixed(2)}</td>
+          <td>${linkCompraHTML}</td>
+          <td>${p.Caja || ''}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      table.appendChild(tbody);
+      modalBody.appendChild(table);
+
+      // Abrir modal lista
+      new bootstrap.Modal(document.getElementById('listaModal')).show();
+    }
+
+    // FILTRO para tabla en modal lista
+    document.addEventListener('input', (e) => {
+      if(e.target && e.target.id === 'filtroModal') {
+        const term = e.target.value.toLowerCase();
+        const tabla = document.querySelector('#modalListaBody table tbody');
+        if (!tabla) return;
+        Array.from(tabla.rows).forEach(row => {
+          const textoFila = row.innerText.toLowerCase();
+          row.style.display = textoFila.includes(term) ? '' : 'none';
+        });
+      }
+    });
+
   </script>
 </body>
 </html>
