@@ -61,7 +61,28 @@ html_template = """
       {% for producto in productos %}
       <div class="col-md-4 mb-4 producto">
         <div class="card h-100 shadow">
-          <img src="{{ producto.ImagenURL }}" class="card-img-top" alt="{{ producto.Nombre }}" loading="lazy" onerror="this.src='{{ producto.LinkCompra|urlencode }}'">
+{% set imagenes = producto.ImagenURL.split(';') %}
+{% if imagenes|length > 1 %}
+  <div id="carousel-{{ loop.index }}" class="carousel slide" data-bs-ride="carousel">
+    <div class="carousel-inner">
+      {% for img in imagenes %}
+        <div class="carousel-item {% if loop.first %}active{% endif %}">
+          <img src="{{ img.strip() }}" class="d-block w-100 card-img-top" alt="{{ producto.Nombre }}" loading="lazy" onerror="this.src='{{ producto.LinkCompra|urlencode }}'">
+        </div>
+      {% endfor %}
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ loop.index }}" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Anterior</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#carousel-{{ loop.index }}" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Siguiente</span>
+    </button>
+  </div>
+{% else %}
+  <img src="{{ imagenes[0] }}" class="card-img-top" alt="{{ producto.Nombre }}" loading="lazy" onerror="this.src='{{ producto.LinkCompra|urlencode }}'">
+{% endif %}
           <div class="card-body">
             <h5 class="card-title nombre">{{ producto.Nombre }}</h5>
             <p class="card-text text-muted descripcion">{{ producto.Descripción }}</p>
