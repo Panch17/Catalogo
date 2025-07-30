@@ -108,6 +108,24 @@ html_template = """
     </nav>
   </div>
 
+  <!-- Modal de Descuento Aleatorio -->
+  <div class="modal fade" id="descuentoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title">🎉 ¡Felicidades!</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="fs-5">¡Has obtenido un <strong>5% de descuento</strong> exclusivo! 😱</p>
+          <p class="text-muted">Para hacerlo válido, <strong>envíanos mensaje por WhatsApp</strong>. Si no lo haces, el descuento <strong>no aplica</strong>.</p>
+          <p class="text-danger small">* Tope máximo del descuento: <strong>$150 MXN</strong>.</p>
+          <a href="https://wa.me/526678191185?text=¡Hola!+Tengo+un+descuento+del+5%+y+quiero+aplicarlo+en+mi+compra" target="_blank" class="btn btn-success mt-2">📱 Enviar Mensaje</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   <!-- Modal Imagen Ampliada -->
   <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -330,6 +348,15 @@ html_template = """
         });
       }
     });
+  // Mostrar modal con 1% de probabilidad al cargar la página
+  window.addEventListener('DOMContentLoaded', () => {
+    const probabilidad = 0.01; // 1%
+    if (Math.random() < probabilidad) {
+      setTimeout(() => {
+        new bootstrap.Modal(document.getElementById('descuentoModal')).show();
+      }, 2000); // Mostrar tras 2 segundos
+    }
+  });
 
   </script>
 </body>
