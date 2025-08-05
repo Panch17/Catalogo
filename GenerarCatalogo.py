@@ -152,9 +152,6 @@ html_template = """
   </div>
 <script src="https://cdn.counter.dev/script.js" data-id="a385688b-fca9-43be-90f6-bf9fff769d46" data-utcoffset="-7"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9490673865072179"
-     crossorigin="anonymous"></script>
-  <script>
     // Variables para paginación y filtrado
     const allItems = Array.from(document.querySelectorAll('.producto'));
     let filtered = [...allItems];
