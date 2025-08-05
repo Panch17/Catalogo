@@ -152,6 +152,7 @@ html_template = """
   </div>
 <script src="https://cdn.counter.dev/script.js" data-id="a385688b-fca9-43be-90f6-bf9fff769d46" data-utcoffset="-7"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
     // Variables para paginación y filtrado
     const allItems = Array.from(document.querySelectorAll('.producto'));
     let filtered = [...allItems];
@@ -347,7 +348,7 @@ html_template = """
     });
   // Mostrar modal con 1% de probabilidad al cargar la página
   window.addEventListener('DOMContentLoaded', () => {
-    const probabilidad = 0.01; // 1%
+    const probabilidad = 0.001; // 0.1%
     if (Math.random() < probabilidad) {
       setTimeout(() => {
         new bootstrap.Modal(document.getElementById('descuentoModal')).show();
