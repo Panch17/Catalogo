@@ -1,5 +1,5 @@
 git add .
-git commit -m "Descripción de los cambios 19082025"
+git commit -m "Descripción de los cambios 16092025"
 git push origin main
 
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=TU_ID"
