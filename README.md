@@ -1,6 +1,8 @@
 git add .
-git commit -m "Descripción de los cambios 16092025"
+git commit -m "Descripción de los cambios 12102025"
 git push origin main
+
+pyinstaller --onefile GenerarCatalogo.py
 
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=TU_ID"
      crossorigin="anonymous"></script>
