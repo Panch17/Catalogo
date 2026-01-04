@@ -1,5 +1,5 @@
 git add .
-git commit -m "Descripción de los cambios 16122025"
+git commit -m "Descripción de los cambios 03012026"
 git push origin main
 
 pyinstaller --onefile GenerarCatalogo.py
