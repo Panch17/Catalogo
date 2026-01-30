@@ -2,13 +2,31 @@ import pandas as pd
 from jinja2 import Template
 import os
 import webbrowser
+import sys
+
+# Configurar codificación UTF-8 para la consola
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
 
 # =============================================
 # CONFIGURACIÓN DE RUTAS (¡AJUSTA ESTO!)
 # =============================================
 SCRIPT_DIR = r"C:\Users\Lpz_p\Desktop\Mi Proyecto Gib\Catalogo"
-EXCEL_PATH = os.path.join(SCRIPT_DIR, "productos.xlsx")
+
+# Crear carpetas si no existen
+DATOS_DIR = os.path.join(SCRIPT_DIR, "datos")
+STYLE_DIR = os.path.join(SCRIPT_DIR, "style")
+JS_DIR = os.path.join(SCRIPT_DIR, "js")
+
+os.makedirs(DATOS_DIR, exist_ok=True)
+os.makedirs(STYLE_DIR, exist_ok=True)
+os.makedirs(JS_DIR, exist_ok=True)
+
+# Rutas de archivos
+EXCEL_PATH = os.path.join(DATOS_DIR, "productos.xlsx")
 OUTPUT_HTML = os.path.join(SCRIPT_DIR, "index.html")
+OUTPUT_CSS = os.path.join(STYLE_DIR, "style.css")
+OUTPUT_JS = os.path.join(JS_DIR, "catalog.js")
 
 # =============================================
 # 1. LEER EL ARCHIVO EXCEL/CSV Y LIMPIAR DATOS
@@ -24,27 +42,690 @@ except Exception as e:
     exit()
 
 # =============================================
-# 2. PLANTILLA HTML CON PAGINACIÓN, FILTRO, MODALES Y BOTÓN OCULTO CON CONTRASEÑA
+# 2. DEFINIR CSS
 # =============================================
-html_template = """
-<!DOCTYPE html>
+css_content = """:root {
+  --primary-color: #6366f1;
+  --secondary-color: #25D366;
+  --bg-light: #f8f9fa;
+  --bg-dark: #1a1a2e;
+  --card-light: rgba(255, 255, 255, 0.95);
+  --card-dark: rgba(30, 41, 59, 0.8);
+}
+
+body { 
+  background-color: var(--bg-light);
+  padding-top: 20px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  color: #333;
+}
+
+body.dark-mode {
+  background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1419 100%);
+  color: #e0e0e0;
+}
+
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--card-light);
+  border: 2px solid #e0e0e0;
+  border-radius: 50px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+body.dark-mode .theme-toggle {
+  background: var(--card-dark);
+  border-color: #444;
+  color: #ffd700;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+
+.favorites-toggle {
+  position: fixed;
+  top: 20px;
+  right: 80px;
+  background: #ffc107;
+  border: 2px solid #ff9800;
+  border-radius: 50px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  font-weight: 600;
+  color: #000;
+}
+
+body.dark-mode .favorites-toggle {
+  background: #ffb700;
+  border-color: #ff8c00;
+}
+
+.favorites-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4);
+  background: #ffb300;
+}
+
+.card {
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
+  border: none;
+  border-radius: 20px;
+  background: var(--card-light);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  position: relative;
+}
+
+body.dark-mode .card {
+  background: var(--card-dark);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.card:hover {
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+body.dark-mode .card:hover {
+  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+}
+
+.card-img-top {
+  cursor: pointer;
+  border-radius: 20px 20px 0 0;
+  object-fit: contain;
+  height: 250px;
+  padding: 15px;
+  transition: transform 0.3s ease, filter 0.3s ease;
+  background: linear-gradient(135deg, #f0f9ff 0%, #f3e8ff 100%);
+}
+
+body.dark-mode .card-img-top {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.card-img-top:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+
+.whatsapp-btn {
+  background-color: #25D366 !important;
+  border-color: #25D366 !important;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  border-radius: 12px;
+}
+
+.whatsapp-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(37, 211, 102, 0.4);
+  background-color: #20ba5a !important;
+}
+
+.btn-outline-danger {
+  border: 2px solid #dc3545;
+  color: #dc3545;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+}
+
+.btn-outline-danger:hover {
+  background-color: #ffebee;
+  transform: scale(1.02);
+}
+
+.btn-danger {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.favoriteBtn {
+  font-weight: 600;
+}
+
+.text-decoration-line-through {
+  text-decoration: line-through;
+}
+
+#hiddenTrigger {
+  cursor: default;
+  user-select: none;
+  transition: transform 0.3s ease;
+}
+
+#hiddenTrigger:hover {
+  transform: scale(1.05);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.producto {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.producto:nth-child(1) { animation-delay: 0.1s; }
+.producto:nth-child(2) { animation-delay: 0.2s; }
+.producto:nth-child(3) { animation-delay: 0.3s; }
+.producto:nth-child(n+4) { animation-delay: 0.4s; }
+
+h1 {
+  animation: fadeInUp 0.8s ease-out;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+body.dark-mode h1 {
+  background: linear-gradient(135deg, #60a5fa, #34d399);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.form-control {
+  border-radius: 12px;
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
+  font-size: 16px;
+}
+
+body.dark-mode .form-control {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e0e0e0;
+}
+
+.form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  transform: scale(1.02);
+}
+
+.pagination {
+  gap: 8px;
+}
+
+.page-link {
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  transition: all 0.3s ease;
+  color: var(--primary-color);
+}
+
+body.dark-mode .page-link {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #60a5fa;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.page-link:hover {
+  background-color: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.page-item.active .page-link {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.modal-content {
+  border-radius: 20px;
+  border: none;
+  background: var(--card-light);
+  backdrop-filter: blur(10px);
+}
+
+body.dark-mode .modal-content {
+  background: var(--card-dark);
+  color: #e0e0e0;
+}
+
+.modal-header {
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  border-radius: 20px 20px 0 0;
+}
+
+body.dark-mode .modal-header {
+  border-bottom-color: rgba(255,255,255,0.1);
+}
+
+#modalImage {
+  max-width: 100%;
+  max-height: 80vh;
+  width: auto;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  border-radius: 15px;
+  object-fit: contain;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+"""
+
+# =============================================
+# 3. DEFINIR JAVASCRIPT
+# =============================================
+js_content = """// Inicializar Dark Mode al cargar
+document.addEventListener('DOMContentLoaded', function() {
+  initDarkMode();
+  initFavoritos();
+});
+
+function initDarkMode() {
+  const darkMode = localStorage.getItem('darkMode') === 'true';
+  if (darkMode) {
+    document.body.classList.add('dark-mode');
+  }
+  const themeToggle = document.getElementById('themeToggle');
+  if (themeToggle) {
+    const themeIcon = document.getElementById('themeIcon');
+    if (themeIcon && darkMode) {
+      themeIcon.textContent = '☀️';
+    }
+    themeToggle.addEventListener('click', toggleDarkMode);
+  }
+}
+
+function toggleDarkMode() {
+  const isDark = document.body.classList.toggle('dark-mode');
+  const themeIcon = document.getElementById('themeIcon');
+  if (themeIcon) {
+    themeIcon.textContent = isDark ? '☀️' : '🌙';
+  }
+  localStorage.setItem('darkMode', isDark);
+}
+
+function initFavoritos() {
+  const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+  actualizarContadorFavoritos(favoritos.length);
+  
+  document.querySelectorAll('.favoriteBtn').forEach((btn) => {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      const nombre = this.getAttribute('data-nombre');
+      const precio = this.getAttribute('data-precio');
+      const url = this.getAttribute('data-url');
+      
+      let favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+      const existe = favoritos.some((f) => f.nombre === nombre);
+      
+      if (existe) {
+        favoritos = favoritos.filter((f) => f.nombre !== nombre);
+        this.classList.remove('btn-danger');
+        this.classList.add('btn-outline-danger');
+      } else {
+        favoritos.push({ nombre, precio, url });
+        this.classList.remove('btn-outline-danger');
+        this.classList.add('btn-danger');
+      }
+      
+      localStorage.setItem('favoritos', JSON.stringify(favoritos));
+      actualizarContadorFavoritos(favoritos.length);
+    });
+    
+    const nombre = btn.getAttribute('data-nombre');
+    const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+    if (favoritos.some((f) => f.nombre === nombre)) {
+      btn.classList.remove('btn-outline-danger');
+      btn.classList.add('btn-danger');
+    }
+  });
+}
+
+function actualizarContadorFavoritos(cantidad) {
+  const contador = document.getElementById('favCount');
+  if (contador) {
+    contador.textContent = cantidad;
+  }
+}
+
+function mostrarFavoritos() {
+  const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+  const modalBody = document.getElementById('modalFavoritosBody');
+  
+  if (favoritos.length === 0) {
+    modalBody.innerHTML = '<p class="text-center text-muted">No tienes productos favoritos aún.</p>';
+  } else {
+    let html = '<div class="list-group">';
+    favoritos.forEach((fav, index) => {
+      html += `
+        <div class="list-group-item">
+          <div class="d-flex gap-3">
+            <div style="min-width: 100px;">
+              <img src="${fav.url}" alt="${fav.nombre}" style="width: 100px; height: 100px; object-fit: contain; border-radius: 8px;" onerror="this.src='https://via.placeholder.com/100'">
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="mb-1">${fav.nombre}</h6>
+              <p class="mb-2 text-success fw-bold">$${parseFloat(fav.precio).toFixed(2)}</p>
+              <button class="btn btn-sm btn-danger" onclick="eliminarFavorito(${index})">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    modalBody.innerHTML = html;
+  }
+  
+  const modal = new bootstrap.Modal(document.getElementById('favoritosModal'));
+  modal.show();
+}
+
+function eliminarFavorito(index) {
+  const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+  favoritos.splice(index, 1);
+  localStorage.setItem('favoritos', JSON.stringify(favoritos));
+  actualizarContadorFavoritos(favoritos.length);
+  
+  // Limpiar backdrop si no hay más favoritos
+  if (favoritos.length === 0) {
+    const modalElement = document.getElementById('favoritosModal');
+    const modal = bootstrap.Modal.getInstance(modalElement);
+    if (modal) {
+      modal.hide();
+    }
+    // Forzar eliminación del backdrop
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+  }
+  
+  mostrarFavoritos();
+  initFavoritos();
+}
+
+function enviarFavoritosWhatsApp() {
+  const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+  
+  if (favoritos.length === 0) {
+    alert('No tienes favoritos para enviar');
+    return;
+  }
+  
+  let mensaje = '¡Hola! Estoy interesado en los siguientes productos:%0A%0A';
+  
+  favoritos.forEach((fav, index) => {
+    mensaje += `${index + 1}. ${encodeURIComponent(fav.nombre)}%0APrecio: $${parseFloat(fav.precio).toFixed(2)}%0A`;
+  });
+  
+  mensaje += '%0A¡Gracias por tu atención!';
+  
+  const numeroWhatsApp = '526678191185';
+  const urlWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${mensaje}`;
+  
+  // Cerrar el modal
+  const modalElement = document.getElementById('favoritosModal');
+  const modal = bootstrap.Modal.getInstance(modalElement);
+  if (modal) {
+    modal.hide();
+  }
+  
+  // Forzar eliminación del backdrop
+  setTimeout(() => {
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+  }, 100);
+  
+  // Abrir WhatsApp
+  window.open(urlWhatsApp, '_blank');
+}
+
+// Variables para paginación y filtrado
+const allItems = Array.from(document.querySelectorAll('.producto'));
+let filtered = [...allItems];
+const pageSize = 18;
+let currentPage = 1;
+
+// Renderiza página principal
+function renderPage(items, page) {
+  allItems.forEach(el => el.style.display = 'none');
+  const start = (page - 1) * pageSize;
+  items.slice(start, start + pageSize).forEach(el => el.style.display = 'block');
+}
+
+// Renderiza paginación principal
+function renderPagination(items) {
+  const totalPages = Math.ceil(items.length / pageSize) || 1;
+  const container = document.getElementById('paginacion');
+  container.innerHTML = '';
+  const makeLi = (label, page, disabled=false, active=false) => {
+    const li = document.createElement('li');
+    li.className = `page-item${disabled?' disabled':''}${active?' active':''}`;
+    const a = document.createElement('a'); a.className = 'page-link'; a.href = '#'; a.innerText = label;
+    a.addEventListener('click', e => { e.preventDefault(); if(!disabled){ currentPage = page; update(); scrollToTop(); }});
+    li.appendChild(a);
+    return li;
+  };
+
+  container.appendChild(makeLi('«', currentPage - 1, currentPage === 1));
+
+  const maxButtons = 5;
+  const half = Math.floor(maxButtons / 2);
+  let startPage = Math.max(1, currentPage - half);
+  let endPage = Math.min(totalPages, currentPage + half);
+  if (endPage - startPage + 1 < maxButtons) {
+    if (startPage === 1) endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    else if (endPage === totalPages) startPage = Math.max(1, endPage - maxButtons + 1);
+  }
+
+  if (startPage > 1) {
+    container.appendChild(makeLi('1', 1, false, currentPage === 1));
+    if (startPage > 2) {
+      const dots = document.createElement('li'); dots.className = 'page-item disabled'; dots.innerHTML = '<span class="page-link">…</span>';
+      container.appendChild(dots);
+    }
+  }
+
+  for (let p = startPage; p <= endPage; p++) {
+    container.appendChild(makeLi(p, p, false, currentPage === p));
+  }
+
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) {
+      const dots = document.createElement('li'); dots.className = 'page-item disabled'; dots.innerHTML = '<span class="page-link">…</span>';
+      container.appendChild(dots);
+    }
+    container.appendChild(makeLi(totalPages, totalPages, false, currentPage === totalPages));
+  }
+
+  container.appendChild(makeLi('»', currentPage + 1, currentPage === totalPages));
+}
+
+// Scroll suave al top
+function scrollToTop() {
+  document.getElementById('top').scrollIntoView({ behavior: 'smooth' });
+}
+
+// Actualiza la lista principal
+function update() {
+  renderPage(filtered, currentPage);
+  renderPagination(filtered);
+}
+
+// Remueve acentos para filtro insensible
+function removeAccents(str) {
+  return str.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+}
+
+// Evento filtro principal
+document.getElementById('filtro').addEventListener('input', function() {
+  const term = removeAccents(this.value.toLowerCase());
+
+  filtered = allItems.filter(el => {
+    const texto = [
+      el.querySelector('.nombre').innerText,
+      el.querySelector('.descripcion').innerText,
+      el.querySelector('.precio').innerText
+    ].join(' ').toLowerCase();
+
+    return removeAccents(texto).includes(term);
+  });
+
+  currentPage = 1;
+  update();
+  scrollToTop();
+});
+
+// Inicializar lista principal
+update();
+
+// Modal imagen grande
+document.querySelectorAll('.card-img-top').forEach(img => {
+  img.addEventListener('click', () => {
+    const modalImage = document.getElementById('modalImage');
+    modalImage.src = img.src;
+    new bootstrap.Modal(document.getElementById('imageModal')).show();
+  });
+});
+
+// BOTÓN OCULTO: Detectar 5 clics en 🎁 para pedir contraseña y mostrar lista
+const hiddenTrigger = document.getElementById('hiddenTrigger');
+let clickCount = 0;
+let clickTimeout;
+
+hiddenTrigger.addEventListener('click', () => {
+  clickCount++;
+  clearTimeout(clickTimeout);
+  clickTimeout = setTimeout(() => {
+    clickCount = 0;
+  }, 2000); // Resetea contador después de 2 segundos sin clics
+
+  if (clickCount === 5) {
+    clickCount = 0;
+    const password = prompt("Ingrese la contraseña:");
+    if(password === "Zombie") {
+      mostrarLista();
+    } else {
+      alert("Contraseña incorrecta");
+    }
+  }
+});
+
+// Función para generar y mostrar tabla completa en modal lista
+function mostrarLista() {
+  const modalBody = document.getElementById('modalListaBody');
+  // Limpiar antes
+  modalBody.querySelector('table')?.remove();
+
+  // Crear tabla con Bootstrap y scroll vertical limitado
+  const table = document.createElement('table');
+  table.className = 'table table-striped table-hover table-sm';
+  table.style.width = '100%';
+
+  // Encabezado tabla
+  const thead = document.createElement('thead');
+  thead.innerHTML = `
+    <tr>
+      <th>Nombre</th>
+      <th>Precio</th>
+      <th>Link Compra</th>
+      <th>Caja</th>
+    </tr>
+  `;
+  table.appendChild(thead);
+
+  // Cuerpo tabla
+  const tbody = document.createElement('tbody');
+
+  // Los datos vienen de Jinja, vamos a usar la variable productos
+  const productos = {{ productos|tojson|safe }};
+  productos.forEach(p => {
+    const tr = document.createElement('tr');
+
+    // LinkCompra con etiqueta <a> que abre en nueva pestaña
+    const linkCompraHTML = p.LinkCompra ? `<a href="${p.LinkCompra}" target="_blank" rel="noopener noreferrer">Abrir enlace</a>` : '';
+
+    tr.innerHTML = `
+      <td>${p.Nombre}</td>
+      <td>$${p.Precio.toFixed(2)}</td>
+      <td>${linkCompraHTML}</td>
+      <td>${p.Caja || ''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  modalBody.appendChild(table);
+
+  // Abrir modal lista
+  new bootstrap.Modal(document.getElementById('listaModal')).show();
+}
+
+// FILTRO para tabla en modal lista
+document.addEventListener('input', (e) => {
+  if(e.target && e.target.id === 'filtroModal') {
+    const term = e.target.value.toLowerCase();
+    const tabla = document.querySelector('#modalListaBody table tbody');
+    if (!tabla) return;
+    Array.from(tabla.rows).forEach(row => {
+      const textoFila = row.innerText.toLowerCase();
+      row.style.display = textoFila.includes(term) ? '' : 'none';
+    });
+  }
+});
+
+// Mostrar modal con 1% de probabilidad al cargar la página
+window.addEventListener('DOMContentLoaded', () => {
+  const probabilidad = 0.001; // 0.1%
+  if (Math.random() < probabilidad) {
+    setTimeout(() => {
+      new bootstrap.Modal(document.getElementById('descuentoModal')).show();
+    }, 2000); // Mostrar tras 2 segundos
+  }
+});
+"""
+
+# =============================================
+# 4. PLANTILLA HTML
+# =============================================
+html_template = """<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Catálogo de Productos</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <style>
-    body { background-color: #f8f9fa; padding-top: 20px; }
-    .card { transition: transform 0.3s; border: none; border-radius: 10px; }
-    .card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-    .card-img-top { cursor: pointer; border-radius: 10px 10px 0 0; object-fit: contain; height: 200px; padding: 10px; }
-    .whatsapp-btn { background-color: #25D366 !important; border-color: #25D366 !important; }
-    .text-decoration-line-through { text-decoration: line-through; }
-    #hiddenTrigger { cursor: default; user-select: none; }
-  </style>
+  <link rel="stylesheet" href="style/style.css">
 </head>
 <body>
+  <!-- Toggle Dark Mode y Favoritos -->
+  <button id="themeToggle" class="theme-toggle" title="Cambiar tema">
+    <span id="themeIcon">🌙</span>
+  </button>
+  <button id="favoritosBtn" class="favorites-toggle" onclick="mostrarFavoritos()" title="Ver favoritos">
+    ❤️ (<span id="favCount">0</span>)
+  </button>
+
   <div class="container" id="top">
     <!-- Título con botón oculto 🎁 -->
     <h1 class="text-center mb-4 text-primary" id="hiddenTrigger" title="Haz clic 5 veces rápido aquí">
@@ -95,7 +776,10 @@ html_template = """
             {% endif %}
           </div>
           <div class="card-footer bg-white">
-            <a href="https://wa.me/526678191185?text=¡Estoy+interesado+en+{{ producto.Nombre|urlencode }}%0APrecio:+{{ (producto.PrecioRebaja if producto.PrecioRebaja is not none and producto.PrecioRebaja > 0 else producto.Precio)|urlencode }}%0AURL:+{{ producto.ImagenURL|urlencode }}" class="btn whatsapp-btn text-white w-100" target="_blank">📱 Contactar</a>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-danger flex-grow-1 favoriteBtn" data-nombre="{{ producto.Nombre }}" data-precio="{{ (producto.PrecioRebaja if producto.PrecioRebaja is not none and producto.PrecioRebaja > 0 else producto.Precio) }}" data-url="{{ producto.ImagenURL }}">❤️ Favorito</button>
+              <a href="https://wa.me/526678191185?text=¡Estoy+interesado+en+{{ producto.Nombre|urlencode }}%0APrecio:+{{ (producto.PrecioRebaja if producto.PrecioRebaja is not none and producto.PrecioRebaja > 0 else producto.Precio)|urlencode }}%0AURL:+{{ producto.ImagenURL|urlencode }}" class="btn whatsapp-btn text-white flex-grow-1" target="_blank">📱 Contactar</a>
+            </div>
           </div>
         </div>
       </div>
@@ -150,221 +834,50 @@ html_template = """
       </div>
     </div>
   </div>
-<script src="https://cdn.counter.dev/script.js" data-id="a385688b-fca9-43be-90f6-bf9fff769d46" data-utcoffset="-7"></script>
+
+  <!-- Modal Favoritos -->
+  <div class="modal fade" id="favoritosModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Mis Favoritos ❤️</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body" id="modalFavoritosBody" style="max-height: 70vh; overflow-y: auto;">
+          <!-- Los favoritos se inyectarán aquí -->
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-success" id="enviarFavWhatsApp" onclick="enviarFavoritosWhatsApp()">📱 Enviar por WhatsApp</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.counter.dev/script.js" data-id="a385688b-fca9-43be-90f6-bf9fff769d46" data-utcoffset="-7"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script>
-    // Variables para paginación y filtrado
-    const allItems = Array.from(document.querySelectorAll('.producto'));
-    let filtered = [...allItems];
-    const pageSize = 18;
-    let currentPage = 1;
-
-    // Renderiza página principal
-    function renderPage(items, page) {
-      allItems.forEach(el => el.style.display = 'none');
-      const start = (page - 1) * pageSize;
-      items.slice(start, start + pageSize).forEach(el => el.style.display = 'block');
-    }
-
-    // Renderiza paginación principal
-    function renderPagination(items) {
-      const totalPages = Math.ceil(items.length / pageSize) || 1;
-      const container = document.getElementById('paginacion');
-      container.innerHTML = '';
-      const makeLi = (label, page, disabled=false, active=false) => {
-        const li = document.createElement('li');
-        li.className = `page-item${disabled?' disabled':''}${active?' active':''}`;
-        const a = document.createElement('a'); a.className = 'page-link'; a.href = '#'; a.innerText = label;
-        a.addEventListener('click', e => { e.preventDefault(); if(!disabled){ currentPage = page; update(); scrollToTop(); }});
-        li.appendChild(a);
-        return li;
-      };
-
-      container.appendChild(makeLi('«', currentPage - 1, currentPage === 1));
-
-      const maxButtons = 5;
-      const half = Math.floor(maxButtons / 2);
-      let startPage = Math.max(1, currentPage - half);
-      let endPage = Math.min(totalPages, currentPage + half);
-      if (endPage - startPage + 1 < maxButtons) {
-        if (startPage === 1) endPage = Math.min(totalPages, startPage + maxButtons - 1);
-        else if (endPage === totalPages) startPage = Math.max(1, endPage - maxButtons + 1);
-      }
-
-      if (startPage > 1) {
-        container.appendChild(makeLi('1', 1, false, currentPage === 1));
-        if (startPage > 2) {
-          const dots = document.createElement('li'); dots.className = 'page-item disabled'; dots.innerHTML = '<span class="page-link">…</span>';
-          container.appendChild(dots);
-        }
-      }
-
-      for (let p = startPage; p <= endPage; p++) {
-        container.appendChild(makeLi(p, p, false, currentPage === p));
-      }
-
-      if (endPage < totalPages) {
-        if (endPage < totalPages - 1) {
-          const dots = document.createElement('li'); dots.className = 'page-item disabled'; dots.innerHTML = '<span class="page-link">…</span>';
-          container.appendChild(dots);
-        }
-        container.appendChild(makeLi(totalPages, totalPages, false, currentPage === totalPages));
-      }
-
-      container.appendChild(makeLi('»', currentPage + 1, currentPage === totalPages));
-    }
-
-    // Scroll suave al top
-    function scrollToTop() {
-      document.getElementById('top').scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // Actualiza la lista principal
-    function update() {
-      renderPage(filtered, currentPage);
-      renderPagination(filtered);
-    }
-
-    // Remueve acentos para filtro insensible
-    function removeAccents(str) {
-      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    }
-
-    // Evento filtro principal
-    document.getElementById('filtro').addEventListener('input', function() {
-      const term = removeAccents(this.value.toLowerCase());
-
-      filtered = allItems.filter(el => {
-        const texto = [
-          el.querySelector('.nombre').innerText,
-          el.querySelector('.descripcion').innerText,
-          el.querySelector('.precio').innerText
-        ].join(' ').toLowerCase();
-
-        return removeAccents(texto).includes(term);
-      });
-
-      currentPage = 1;
-      update();
-      scrollToTop();
-    });
-
-    // Inicializar lista principal
-    update();
-
-    // Modal imagen grande
-    document.querySelectorAll('.card-img-top').forEach(img => {
-      img.addEventListener('click', () => {
-        const modalImage = document.getElementById('modalImage');
-        modalImage.src = img.src;
-        new bootstrap.Modal(document.getElementById('imageModal')).show();
-      });
-    });
-
-    // BOTÓN OCULTO: Detectar 5 clics en 🎁 para pedir contraseña y mostrar lista
-    const hiddenTrigger = document.getElementById('hiddenTrigger');
-    let clickCount = 0;
-    let clickTimeout;
-
-    hiddenTrigger.addEventListener('click', () => {
-      clickCount++;
-      clearTimeout(clickTimeout);
-      clickTimeout = setTimeout(() => {
-        clickCount = 0;
-      }, 2000); // Resetea contador después de 2 segundos sin clics
-
-      if (clickCount === 5) {
-        clickCount = 0;
-        const password = prompt("Ingrese la contraseña:");
-        if(password === "Zombie") {
-          mostrarLista();
-        } else {
-          alert("Contraseña incorrecta");
-        }
-      }
-    });
-
-    // Función para generar y mostrar tabla completa en modal lista
-    function mostrarLista() {
-      const modalBody = document.getElementById('modalListaBody');
-      // Limpiar antes
-      modalBody.querySelector('table')?.remove();
-
-      // Crear tabla con Bootstrap y scroll vertical limitado
-      const table = document.createElement('table');
-      table.className = 'table table-striped table-hover table-sm';
-      table.style.width = '100%';
-
-      // Encabezado tabla
-      const thead = document.createElement('thead');
-      thead.innerHTML = `
-        <tr>
-          <th>Nombre</th>
-          <th>Precio</th>
-          <th>Link Compra</th>
-          <th>Caja</th>
-        </tr>
-      `;
-      table.appendChild(thead);
-
-      // Cuerpo tabla
-      const tbody = document.createElement('tbody');
-
-      // Los datos vienen de Jinja, vamos a usar la variable productos
-      const productos = {{ productos|tojson|safe }};
-      productos.forEach(p => {
-        const tr = document.createElement('tr');
-
-        // LinkCompra con etiqueta <a> que abre en nueva pestaña
-        const linkCompraHTML = p.LinkCompra ? `<a href="${p.LinkCompra}" target="_blank" rel="noopener noreferrer">Abrir enlace</a>` : '';
-
-        tr.innerHTML = `
-          <td>${p.Nombre}</td>
-          <td>$${p.Precio.toFixed(2)}</td>
-          <td>${linkCompraHTML}</td>
-          <td>${p.Caja || ''}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      table.appendChild(tbody);
-      modalBody.appendChild(table);
-
-      // Abrir modal lista
-      new bootstrap.Modal(document.getElementById('listaModal')).show();
-    }
-
-    // FILTRO para tabla en modal lista
-    document.addEventListener('input', (e) => {
-      if(e.target && e.target.id === 'filtroModal') {
-        const term = e.target.value.toLowerCase();
-        const tabla = document.querySelector('#modalListaBody table tbody');
-        if (!tabla) return;
-        Array.from(tabla.rows).forEach(row => {
-          const textoFila = row.innerText.toLowerCase();
-          row.style.display = textoFila.includes(term) ? '' : 'none';
-        });
-      }
-    });
-  // Mostrar modal con 1% de probabilidad al cargar la página
-  window.addEventListener('DOMContentLoaded', () => {
-    const probabilidad = 0.001; // 0.1%
-    if (Math.random() < probabilidad) {
-      setTimeout(() => {
-        new bootstrap.Modal(document.getElementById('descuentoModal')).show();
-      }, 2000); // Mostrar tras 2 segundos
-    }
-  });
-
-  </script>
+  <script src="js/catalog.js"></script>
 </body>
 </html>
 """
 
 # =============================================
-# 3. GENERAR HTML
+# 5. GENERAR ARCHIVOS (CSS, JS, HTML)
 # =============================================
 try:
+    # Generar CSS
+    with open(OUTPUT_CSS, "w", encoding="utf-8") as f:
+        f.write(css_content)
+    print(f"✅ CSS generado en: {OUTPUT_CSS}")
+    
+    # Generar JS (reemplazar variables de Jinja)
+    template_js = Template(js_content)
+    js_output = template_js.render(productos=df.to_dict("records"))
+    with open(OUTPUT_JS, "w", encoding="utf-8") as f:
+        f.write(js_output)
+    print(f"✅ JavaScript generado en: {OUTPUT_JS}")
+    
+    # Generar HTML
     template = Template(html_template)
     html_output = template.render(productos=df.to_dict("records"))
     with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
@@ -373,4 +886,4 @@ try:
     print("📂 Abre el archivo en tu navegador para verlo.")
     webbrowser.open(f"file://{OUTPUT_HTML}")
 except Exception as e:
-    print(f"❌ Error al generar el HTML: {e}")
+    print(f"❌ Error al generar los archivos: {e}")
