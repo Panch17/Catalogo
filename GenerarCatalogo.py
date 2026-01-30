@@ -412,38 +412,49 @@ function initFavoritos() {
   const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
   actualizarContadorFavoritos(favoritos.length);
   
+  // Actualizar estado visual de todos los botones
   document.querySelectorAll('.favoriteBtn').forEach((btn) => {
-    btn.addEventListener('click', function (e) {
-      e.preventDefault();
-      const nombre = this.getAttribute('data-nombre');
-      const precio = this.getAttribute('data-precio');
-      const url = this.getAttribute('data-url');
-      
-      let favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
-      const existe = favoritos.some((f) => f.nombre === nombre);
-      
-      if (existe) {
-        favoritos = favoritos.filter((f) => f.nombre !== nombre);
-        this.classList.remove('btn-danger');
-        this.classList.add('btn-outline-danger');
-      } else {
-        favoritos.push({ nombre, precio, url });
-        this.classList.remove('btn-outline-danger');
-        this.classList.add('btn-danger');
-      }
-      
-      localStorage.setItem('favoritos', JSON.stringify(favoritos));
-      actualizarContadorFavoritos(favoritos.length);
-    });
-    
     const nombre = btn.getAttribute('data-nombre');
-    const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
-    if (favoritos.some((f) => f.nombre === nombre)) {
+    const esFavorito = favoritos.some((f) => f.nombre === nombre);
+    
+    if (esFavorito) {
       btn.classList.remove('btn-outline-danger');
       btn.classList.add('btn-danger');
+    } else {
+      btn.classList.remove('btn-danger');
+      btn.classList.add('btn-outline-danger');
     }
   });
 }
+
+// Event delegation para favoritos (evita múltiples listeners)
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.favoriteBtn')) {
+    e.preventDefault();
+    const btn = e.target.closest('.favoriteBtn');
+    const nombre = btn.getAttribute('data-nombre');
+    const precio = btn.getAttribute('data-precio');
+    const url = btn.getAttribute('data-url');
+    
+    let favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
+    const existe = favoritos.some((f) => f.nombre === nombre);
+    
+    if (existe) {
+      // Remover de favoritos
+      favoritos = favoritos.filter((f) => f.nombre !== nombre);
+      btn.classList.remove('btn-danger');
+      btn.classList.add('btn-outline-danger');
+    } else {
+      // Agregar a favoritos
+      favoritos.push({ nombre, precio, url });
+      btn.classList.remove('btn-outline-danger');
+      btn.classList.add('btn-danger');
+    }
+    
+    localStorage.setItem('favoritos', JSON.stringify(favoritos));
+    actualizarContadorFavoritos(favoritos.length);
+  }
+});
 
 function actualizarContadorFavoritos(cantidad) {
   const contador = document.getElementById('favCount');
@@ -480,7 +491,15 @@ function mostrarFavoritos() {
     modalBody.innerHTML = html;
   }
   
-  const modal = new bootstrap.Modal(document.getElementById('favoritosModal'));
+  // Limpiar backdrops previos
+  document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+  document.body.classList.remove('modal-open');
+  
+  const modalElement = document.getElementById('favoritosModal');
+  let modal = bootstrap.Modal.getInstance(modalElement);
+  if (!modal) {
+    modal = new bootstrap.Modal(modalElement);
+  }
   modal.show();
 }
 
@@ -490,20 +509,31 @@ function eliminarFavorito(index) {
   localStorage.setItem('favoritos', JSON.stringify(favoritos));
   actualizarContadorFavoritos(favoritos.length);
   
-  // Limpiar backdrop si no hay más favoritos
+  // Actualizar botones de favoritos en la página
+  initFavoritos();
+  
+  const modalElement = document.getElementById('favoritosModal');
+  
   if (favoritos.length === 0) {
-    const modalElement = document.getElementById('favoritosModal');
+    // Si no hay favoritos, cerrar el modal completamente
     const modal = bootstrap.Modal.getInstance(modalElement);
     if (modal) {
+      // Usar el evento hidden de Bootstrap para saber cuándo terminó de cerrar
+      const closeHandler = () => {
+        // Limpiar backdrops y estilos después de que cierre
+        document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        modalElement.removeEventListener('hidden.bs.modal', closeHandler);
+      };
+      modalElement.addEventListener('hidden.bs.modal', closeHandler, { once: true });
       modal.hide();
     }
-    // Forzar eliminación del backdrop
-    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-    document.body.classList.remove('modal-open');
+  } else {
+    // Si quedan favoritos, actualizar contenido del modal
+    mostrarFavoritos();
   }
-  
-  mostrarFavoritos();
-  initFavoritos();
 }
 
 function enviarFavoritosWhatsApp() {
@@ -517,10 +547,10 @@ function enviarFavoritosWhatsApp() {
   let mensaje = '¡Hola! Estoy interesado en los siguientes productos:%0A%0A';
   
   favoritos.forEach((fav, index) => {
-    mensaje += `${index + 1}. ${encodeURIComponent(fav.nombre)}%0APrecio: $${parseFloat(fav.precio).toFixed(2)}%0A`;
+    mensaje += `${index + 1}. ${encodeURIComponent(fav.nombre)}%0APrecio: $${parseFloat(fav.precio).toFixed(2)}%0AImagen: ${encodeURIComponent(fav.url)}%0A%0A`;
   });
   
-  mensaje += '%0A¡Gracias por tu atención!';
+  mensaje += '¡Gracias por tu atención!';
   
   const numeroWhatsApp = '526678191185';
   const urlWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${mensaje}`;
