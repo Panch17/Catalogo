@@ -47,8 +47,8 @@ body.dark-mode .theme-toggle {
 
 .favorites-toggle {
   position: fixed;
-  top: 20px;
-  right: 80px;
+  top: 70px; /* debajo del toggle de tema */
+  right: 20px; /* alinear con el toggle */
   background: #ffc107;
   border: 2px solid #ff9800;
   border-radius: 50px;
@@ -87,6 +87,26 @@ body.dark-mode .favorites-toggle {
 body.dark-mode .card {
   background: var(--card-dark);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode: mejorar contraste de texto en las tarjetas */
+body.dark-mode .card-body .card-title,
+body.dark-mode .card-body .nombre,
+body.dark-mode .card-body .descripcion,
+body.dark-mode .card-body .text-decoration-line-through,
+body.dark-mode .card-body .small {
+  color: #ffffff !important;
+}
+
+/* Precio con descuento: verde más brillante en modo oscuro para mayor visibilidad */
+body.dark-mode .card-body .text-success,
+body.dark-mode .precio {
+  color: #4ade80 !important; /* verde brillante */
+}
+
+/* Footer de la tarjeta en modo oscuro menos brillante */
+body.dark-mode .card-footer {
+  background: rgba(255,255,255,0.02);
 }
 
 .card:hover {
@@ -284,4 +304,26 @@ body.dark-mode .modal-header {
 
 html {
   scroll-behavior: smooth;
+}
+
+/* Ajustes responsive: botones más pequeños en móviles */
+@media (max-width: 576px) {
+  .theme-toggle {
+    top: 12px;
+    right: 12px;
+    padding: 6px 10px;
+    font-size: 18px;
+  }
+
+  .favorites-toggle {
+    top: 54px; /* ligeramente debajo del toggle reducido */
+    right: 12px;
+    padding: 6px 10px;
+    font-size: 14px;
+    border-radius: 40px;
+  }
+
+  .theme-toggle, .favorites-toggle {
+    box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+  }
 }
