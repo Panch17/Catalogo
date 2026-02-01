@@ -155,6 +155,10 @@ body.dark-mode .card-footer {
   background: rgba(255,255,255,0.02);
 }
 
+body.dark-mode .card-footer.bg-white {
+  background: rgba(255,255,255,0.02) !important;
+}
+
 .card:hover {
   transform: translateY(-12px) scale(1.02);
   box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
@@ -377,6 +381,53 @@ body.dark-mode .page-link {
 body.dark-mode .modal-content {
   background: var(--card-dark);
   color: #e0e0e0;
+}
+
+body.dark-mode .modal-body,
+body.dark-mode .modal-footer {
+  background: transparent;
+  color: #e0e0e0;
+}
+
+body.dark-mode .list-group-item {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: #e0e0e0;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+body.dark-mode .table {
+  color: #e0e0e0;
+}
+
+body.dark-mode .table thead th,
+body.dark-mode .table tbody td {
+  color: #e0e0e0;
+  background-color: transparent;
+}
+
+body.dark-mode .table thead th {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+body.dark-mode .table > :not(caption) > * > * {
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode #modalListaBody .form-control {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e0e0e0;
+}
+
+body.dark-mode .table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+body.dark-mode .table-hover > tbody > tr:hover {
+  background-color: rgba(255, 255, 255, 0.06);
 }
 
 .modal-header {
@@ -850,8 +901,8 @@ function mostrarLista() {
     <tr>
       <th>Nombre</th>
       <th>Precio</th>
-      <th>Link Compra</th>
-      <th>Caja</th>
+      <th>Almacenamiento</th>
+      <th>Fuente</th>
     </tr>
   `;
   table.appendChild(thead);
@@ -863,15 +914,15 @@ function mostrarLista() {
   const productos = {{ productos|tojson|safe }};
   productos.forEach(p => {
     const tr = document.createElement('tr');
-
-    // LinkCompra con etiqueta <a> que abre en nueva pestaña
-    const linkCompraHTML = p.LinkCompra ? `<a href="${p.LinkCompra}" target="_blank" rel="noopener noreferrer">Abrir enlace</a>` : '';
-
+    const precioFinal = (p.PrecioRebaja !== null && p.PrecioRebaja > 0) ? p.PrecioRebaja : p.Precio;
+    // LinkCompra con icono que abre en nueva pestaña
+    const linkCompraHTML = p.LinkCompra ? `<a href="${p.LinkCompra}" target="_blank" rel="noopener noreferrer" title="Abrir enlace" aria-label="Abrir enlace">🔗</a>` : '';
+    //<td>$${p.Precio.toFixed(2)}</td>
     tr.innerHTML = `
       <td>${p.Nombre}</td>
-      <td>$${p.Precio.toFixed(2)}</td>
-      <td>${linkCompraHTML}</td>
+      <td>$${precioFinal.toFixed(2)}</td>
       <td>${p.Caja || ''}</td>
+      <td>${linkCompraHTML}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -886,11 +937,11 @@ function mostrarLista() {
 // FILTRO para tabla en modal lista
 document.addEventListener('input', (e) => {
   if(e.target && e.target.id === 'filtroModal') {
-    const term = e.target.value.toLowerCase();
+    const term = removeAccents(e.target.value.toLowerCase());
     const tabla = document.querySelector('#modalListaBody table tbody');
     if (!tabla) return;
     Array.from(tabla.rows).forEach(row => {
-      const textoFila = row.innerText.toLowerCase();
+      const textoFila = removeAccents(row.innerText.toLowerCase());
       row.style.display = textoFila.includes(term) ? '' : 'none';
     });
   }
