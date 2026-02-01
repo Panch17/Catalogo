@@ -230,7 +230,20 @@ body.dark-mode h1 {
   font-size: 16px;
 }
 
+.form-select {
+  border-radius: 12px;
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
+  font-size: 16px;
+}
+
 body.dark-mode .form-control {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e0e0e0;
+}
+
+body.dark-mode .form-select {
   background-color: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.2);
   color: #e0e0e0;
@@ -240,6 +253,44 @@ body.dark-mode .form-control {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   transform: scale(1.02);
+}
+
+.form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.back-to-top {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.back-to-top.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+body.dark-mode .back-to-top {
+  background: #60a5fa;
 }
 
 .pagination {
@@ -325,5 +376,28 @@ html {
 
   .theme-toggle, .favorites-toggle {
     box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+  }
+
+  /* Paginación más compacta en móviles */
+  .pagination {
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+  }
+
+  .page-link {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 6px;
+    min-width: 32px;
+    text-align: center;
+  }
+
+  .back-to-top {
+    right: 12px;
+    bottom: 12px;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
   }
 }

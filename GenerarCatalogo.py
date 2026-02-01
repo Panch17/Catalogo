@@ -276,7 +276,20 @@ body.dark-mode h1 {
   font-size: 16px;
 }
 
+.form-select {
+  border-radius: 12px;
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
+  font-size: 16px;
+}
+
 body.dark-mode .form-control {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #e0e0e0;
+}
+
+body.dark-mode .form-select {
   background-color: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.2);
   color: #e0e0e0;
@@ -286,6 +299,44 @@ body.dark-mode .form-control {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
   transform: scale(1.02);
+}
+
+.form-select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.back-to-top {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+  z-index: 1000;
+}
+
+.back-to-top.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+body.dark-mode .back-to-top {
+  background: #60a5fa;
 }
 
 .pagination {
@@ -371,6 +422,29 @@ html {
 
   .theme-toggle, .favorites-toggle {
     box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+  }
+
+  /* Paginación más compacta en móviles */
+  .pagination {
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+  }
+
+  .page-link {
+    padding: 4px 8px;
+    font-size: 12px;
+    border-radius: 6px;
+    min-width: 32px;
+    text-align: center;
+  }
+
+  .back-to-top {
+    right: 12px;
+    bottom: 12px;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
   }
 }
 """
@@ -572,11 +646,40 @@ function enviarFavoritosWhatsApp() {
   window.open(urlWhatsApp, '_blank');
 }
 
-// Variables para paginación y filtrado
+// Variables para paginación, filtrado y orden
 const allItems = Array.from(document.querySelectorAll('.producto'));
+const originalOrder = new Map();
+allItems.forEach((el, idx) => originalOrder.set(el, idx));
 let filtered = [...allItems];
 const pageSize = 18;
 let currentPage = 1;
+const sortSelect = document.getElementById('ordenar');
+let currentSort = sortSelect ? sortSelect.value : 'reciente';
+const productosContainer = document.getElementById('productos');
+
+function getItemPrice(el) {
+  const raw = el.dataset.price || el.querySelector('.precio')?.innerText || '0';
+  return parseFloat(String(raw).replace(/[^0-9.]/g, '')) || 0;
+}
+
+function applySort(items) {
+  const sorted = [...items];
+  if (currentSort === 'precio-asc') {
+    sorted.sort((a, b) => getItemPrice(a) - getItemPrice(b));
+  } else if (currentSort === 'precio-desc') {
+    sorted.sort((a, b) => getItemPrice(b) - getItemPrice(a));
+  } else {
+    sorted.sort((a, b) => (originalOrder.get(a) ?? 0) - (originalOrder.get(b) ?? 0));
+  }
+  return sorted;
+}
+
+function reorderContainer(items) {
+  if (!productosContainer || items.length === 0) return;
+  const fragment = document.createDocumentFragment();
+  items.forEach(el => fragment.appendChild(el));
+  productosContainer.appendChild(fragment);
+}
 
 // Renderiza página principal
 function renderPage(items, page) {
@@ -601,7 +704,7 @@ function renderPagination(items) {
 
   container.appendChild(makeLi('«', currentPage - 1, currentPage === 1));
 
-  const maxButtons = 5;
+  const maxButtons = window.matchMedia('(max-width: 576px)').matches ? 3 : 5;
   const half = Math.floor(maxButtons / 2);
   let startPage = Math.max(1, currentPage - half);
   let endPage = Math.min(totalPages, currentPage + half);
@@ -638,10 +741,28 @@ function scrollToTop() {
   document.getElementById('top').scrollIntoView({ behavior: 'smooth' });
 }
 
+// Botón flotante "Ir arriba"
+const backToTopBtn = document.getElementById('backToTop');
+if (backToTopBtn) {
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 400) {
+      backToTopBtn.classList.add('show');
+    } else {
+      backToTopBtn.classList.remove('show');
+    }
+  });
+
+  backToTopBtn.addEventListener('click', () => {
+    scrollToTop();
+  });
+}
+
 // Actualiza la lista principal
 function update() {
-  renderPage(filtered, currentPage);
-  renderPagination(filtered);
+  const sorted = applySort(filtered);
+  reorderContainer(sorted);
+  renderPage(sorted, currentPage);
+  renderPagination(sorted);
 }
 
 // Remueve acentos para filtro insensible
@@ -667,6 +788,15 @@ document.getElementById('filtro').addEventListener('input', function() {
   update();
   scrollToTop();
 });
+
+if (sortSelect) {
+  sortSelect.addEventListener('change', (e) => {
+    currentSort = e.target.value;
+    currentPage = 1;
+    update();
+    scrollToTop();
+  });
+}
 
 // Inicializar lista principal
 update();
@@ -805,14 +935,19 @@ html_template = """<!DOCTYPE html>
     </h1>
 
     <!-- Buscador principal -->
-    <div class="mb-4 text-center">
-      <input id="filtro" type="text" class="form-control w-50 d-inline" placeholder="🔍 Buscar productos..." />
+    <div class="mb-4 text-center d-flex justify-content-center gap-2 flex-wrap">
+      <input id="filtro" type="text" class="form-control w-50" placeholder="🔍 Buscar productos..." />
+      <select id="ordenar" class="form-select w-auto">
+        <option value="reciente" selected>Más recientes</option>
+        <option value="precio-asc">Precio: menor a mayor</option>
+        <option value="precio-desc">Precio: mayor a menor</option>
+      </select>
     </div>
 
     <!-- Productos -->
     <div class="row" id="productos">
       {% for producto in productos %}
-      <div class="col-md-4 mb-4 producto">
+      <div class="col-md-4 mb-4 producto" data-price="{{ (producto.PrecioRebaja if producto.PrecioRebaja is not none and producto.PrecioRebaja > 0 else producto.Precio) }}" data-index="{{ loop.index0 }}">
         <div class="card h-100 shadow">
 {% set imagenes = producto.ImagenURL.split(';') %}
 {% if imagenes|length > 1 %}
@@ -925,6 +1060,9 @@ html_template = """<!DOCTYPE html>
       </div>
     </div>
   </div>
+
+  <!-- Botón Ir Arriba -->
+  <button id="backToTop" class="back-to-top" title="Ir arriba" aria-label="Ir arriba">↑</button>
 
   <script src="https://cdn.counter.dev/script.js" data-id="a385688b-fca9-43be-90f6-bf9fff769d46" data-utcoffset="-7"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
