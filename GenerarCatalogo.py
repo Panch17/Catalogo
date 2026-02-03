@@ -36,6 +36,18 @@ try:
     df = df.sample(frac=1).reset_index(drop=True)  # Mezcla aleatoriamente los productos
     df['Precio'] = df['Precio'].replace(r'[\$,]', '', regex=True).astype(float)
     df['PrecioRebaja'] = pd.to_numeric(df.get('PrecioRebaja'), errors='coerce')
+    if 'ImagenURL' in df.columns:
+      df['ImagenURL'] = df['ImagenURL'].fillna('').astype(str).replace('nan', '')
+    if 'LinkCompra' in df.columns:
+      df['LinkCompra'] = df['LinkCompra'].fillna('').astype(str).replace('nan', '')
+    if 'Categoria' in df.columns:
+        df['Categoria'] = df['Categoria'].fillna('Otros').astype(str)
+        df.loc[df['Categoria'].str.strip().str.lower() == 'seguridad', 'Categoria'] = 'Otros'
+    else:
+        df['Categoria'] = 'Otros'
+    categorias = sorted(
+        [c for c in df['Categoria'].dropna().unique().tolist() if str(c).strip() and str(c).strip().lower() != 'seguridad']
+    )
     print("✅ Archivo Excel leído y procesado correctamente")
 except Exception as e:
     print(f"❌ Error al leer el archivo: {e}")
@@ -821,9 +833,13 @@ function removeAccents(str) {
   return str.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
 }
 
-// Evento filtro principal
-document.getElementById('filtro').addEventListener('input', function() {
-  const term = removeAccents(this.value.toLowerCase());
+// Evento filtro principal (texto + categoría)
+const searchInput = document.getElementById('filtro');
+const categorySelect = document.getElementById('filtroCategoria');
+
+function applyFilters() {
+  const term = removeAccents((searchInput?.value || '').toLowerCase());
+  const category = removeAccents((categorySelect?.value || '').toLowerCase());
 
   filtered = allItems.filter(el => {
     const texto = [
@@ -832,13 +848,25 @@ document.getElementById('filtro').addEventListener('input', function() {
       el.querySelector('.precio').innerText
     ].join(' ').toLowerCase();
 
-    return removeAccents(texto).includes(term);
+    const matchesText = removeAccents(texto).includes(term);
+    const itemCategory = removeAccents((el.dataset.category || '').toLowerCase());
+    const matchesCategory = !category || itemCategory === category;
+
+    return matchesText && matchesCategory;
   });
 
   currentPage = 1;
   update();
   scrollToTop();
-});
+}
+
+if (searchInput) {
+  searchInput.addEventListener('input', applyFilters);
+}
+
+if (categorySelect) {
+  categorySelect.addEventListener('change', applyFilters);
+}
 
 if (sortSelect) {
   sortSelect.addEventListener('change', (e) => {
@@ -988,6 +1016,12 @@ html_template = """<!DOCTYPE html>
     <!-- Buscador principal -->
     <div class="mb-4 text-center d-flex justify-content-center gap-2 flex-wrap">
       <input id="filtro" type="text" class="form-control w-50" placeholder="🔍 Buscar productos..." />
+      <select id="filtroCategoria" class="form-select w-auto">
+        <option value="" selected>Todas las categorías</option>
+        {% for cat in categorias %}
+        <option value="{{ cat }}">{{ cat }}</option>
+        {% endfor %}
+      </select>
       <select id="ordenar" class="form-select w-auto">
         <option value="reciente" selected>Más recientes</option>
         <option value="precio-asc">Precio: menor a mayor</option>
@@ -998,7 +1032,7 @@ html_template = """<!DOCTYPE html>
     <!-- Productos -->
     <div class="row" id="productos">
       {% for producto in productos %}
-      <div class="col-md-4 mb-4 producto" data-price="{{ (producto.PrecioRebaja if producto.PrecioRebaja is not none and producto.PrecioRebaja > 0 else producto.Precio) }}" data-index="{{ loop.index0 }}">
+      <div class="col-md-4 mb-4 producto" data-price="{{ (producto.PrecioRebaja if producto.PrecioRebaja is not none and producto.PrecioRebaja > 0 else producto.Precio) }}" data-index="{{ loop.index0 }}" data-category="{{ (producto.Categoria if producto.Categoria is not none else 'Otros') }}">
         <div class="card h-100 shadow">
 {% set imagenes = producto.ImagenURL.split(';') %}
 {% if imagenes|length > 1 %}
@@ -1140,7 +1174,7 @@ try:
     
     # Generar HTML
     template = Template(html_template)
-    html_output = template.render(productos=df.to_dict("records"))
+    html_output = template.render(productos=df.to_dict("records"), categorias=categorias)
     with open(OUTPUT_HTML, "w", encoding="utf-8") as f:
         f.write(html_output)
     print(f"✅ Catálogo generado en: {OUTPUT_HTML}")
