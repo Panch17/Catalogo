@@ -63,7 +63,7 @@ def push_changes(repo_dir, branch):
 
 def main():
     repo_dir = Path(__file__).resolve().parent
-    branch = "master"
+    branch = "main"
 
     while True:
         print("\nSelecciona una opcion:")
