@@ -297,6 +297,31 @@ body.dark-mode .back-to-top {
   background: #60a5fa;
 }
 
+/* Info de administrador (oculta por defecto, visible en modo admin) */
+.admin-info {
+  border-top: 1px dashed #dee2e6;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+body.dark-mode .admin-info {
+  border-top-color: rgba(255, 255, 255, 0.2);
+}
+
+.admin-info small {
+  line-height: 1.7;
+}
+
+body.dark-mode .admin-info small {
+  color: #adb5bd !important;
+}
+
+body.dark-mode .admin-info a {
+  color: #60a5fa;
+}
+  background: #60a5fa;
+}
+
 .pagination {
   gap: 8px;
 }

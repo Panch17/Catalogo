@@ -355,6 +355,31 @@ body.dark-mode .back-to-top {
   background: #60a5fa;
 }
 
+/* Info de administrador (oculta por defecto, visible en modo admin) */
+.admin-info {
+  border-top: 1px dashed #dee2e6;
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+body.dark-mode .admin-info {
+  border-top-color: rgba(255, 255, 255, 0.2);
+}
+
+.admin-info small {
+  line-height: 1.7;
+}
+
+body.dark-mode .admin-info small {
+  color: #adb5bd !important;
+}
+
+body.dark-mode .admin-info a {
+  color: #60a5fa;
+}
+  background: #60a5fa;
+}
+
 .pagination {
   gap: 8px;
 }
@@ -905,75 +930,19 @@ hiddenTrigger.addEventListener('click', () => {
     clickCount = 0;
     const password = prompt("Ingrese la contraseña:");
     if(password === "Zombie") {
-      mostrarLista();
+      toggleAdminMode(true);
     } else {
       alert("Contraseña incorrecta");
     }
   }
 });
 
-// Función para generar y mostrar tabla completa en modal lista
-function mostrarLista() {
-  const modalBody = document.getElementById('modalListaBody');
-  // Limpiar antes
-  modalBody.querySelector('table')?.remove();
-
-  // Crear tabla con Bootstrap y scroll vertical limitado
-  const table = document.createElement('table');
-  table.className = 'table table-striped table-hover table-sm';
-  table.style.width = '100%';
-
-  // Encabezado tabla
-  const thead = document.createElement('thead');
-  thead.innerHTML = `
-    <tr>
-      <th>Nombre</th>
-      <th>Precio</th>
-      <th>Almacenamiento</th>
-      <th>Fuente</th>
-    </tr>
-  `;
-  table.appendChild(thead);
-
-  // Cuerpo tabla
-  const tbody = document.createElement('tbody');
-
-  // Los datos vienen de Jinja, vamos a usar la variable productos
-  const productos = {{ productos|tojson|safe }};
-  productos.forEach(p => {
-    const tr = document.createElement('tr');
-    const precioFinal = (p.PrecioRebaja !== null && p.PrecioRebaja > 0) ? p.PrecioRebaja : p.Precio;
-    // LinkCompra con icono que abre en nueva pestaña
-    const linkCompraHTML = p.LinkCompra ? `<a href="${p.LinkCompra}" target="_blank" rel="noopener noreferrer" title="Abrir enlace" aria-label="Abrir enlace">🔗</a>` : '';
-    //<td>$${p.Precio.toFixed(2)}</td>
-    tr.innerHTML = `
-      <td>${p.Nombre}</td>
-      <td>$${precioFinal.toFixed(2)}</td>
-      <td>${p.Caja || ''}</td>
-      <td>${linkCompraHTML}</td>
-    `;
-    tbody.appendChild(tr);
+// Activa/desactiva la visibilidad de la info de admin en las cards
+function toggleAdminMode(active) {
+  document.querySelectorAll('.admin-info').forEach(el => {
+    el.style.display = active ? 'block' : 'none';
   });
-
-  table.appendChild(tbody);
-  modalBody.appendChild(table);
-
-  // Abrir modal lista
-  new bootstrap.Modal(document.getElementById('listaModal')).show();
 }
-
-// FILTRO para tabla en modal lista
-document.addEventListener('input', (e) => {
-  if(e.target && e.target.id === 'filtroModal') {
-    const term = removeAccents(e.target.value.toLowerCase());
-    const tabla = document.querySelector('#modalListaBody table tbody');
-    if (!tabla) return;
-    Array.from(tabla.rows).forEach(row => {
-      const textoFila = removeAccents(row.innerText.toLowerCase());
-      row.style.display = textoFila.includes(term) ? '' : 'none';
-    });
-  }
-});
 
 // Mostrar modal con 1% de probabilidad al cargar la página
 window.addEventListener('DOMContentLoaded', () => {
@@ -1066,6 +1035,14 @@ html_template = """<!DOCTYPE html>
             {% else %}
               <p class="text-success fw-bold precio">${{ "%.2f"|format(producto.Precio) }}</p>
             {% endif %}
+            <div class="admin-info" style="display:none;">
+              <small class="d-block text-secondary mt-2">📦 {{ producto.Caja or '—' }}</small>
+              {% if producto.LinkCompra %}
+              <small class="d-block text-secondary">🔗 <a href="{{ producto.LinkCompra }}" target="_blank" rel="noopener noreferrer">Ver enlace</a></small>
+              {% else %}
+              <small class="d-block text-secondary">🔗 —</small>
+              {% endif %}
+            </div>
           </div>
           <div class="card-footer bg-white">
             <div class="d-flex gap-2">
@@ -1107,22 +1084,6 @@ html_template = """<!DOCTYPE html>
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content bg-transparent border-0">
         <img id="modalImage" src="" class="img-fluid rounded" alt="Imagen ampliada" />
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Lista con filtro -->
-  <div class="modal fade" id="listaModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Lista de Productos</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body" id="modalListaBody" style="max-height: 70vh; overflow-y: auto;">
-          <input type="text" id="filtroModal" class="form-control mb-3" placeholder="🔍 Buscar en la lista..." />
-          <!-- La tabla se inyectará aquí -->
-        </div>
       </div>
     </div>
   </div>
