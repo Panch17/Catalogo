@@ -90,3 +90,12 @@ Catalogo/
 ```
 pyinstaller --onefile GenerarCatalogo.py
 ```
+
+## Subir a la rema
+
+```
+git status
+git add .
+git commit -m "Descripción de los cambios"
+git push origin main
+```
