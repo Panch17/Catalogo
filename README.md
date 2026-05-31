@@ -80,16 +80,19 @@ Catalogo/
 │   └── catalog.js
 ├── datos/
 │   └── productos.xlsx
-└── GenerarCatalogo.py
+├── GenerarCatalogo.py
+└── DescargarImagenes.py
 ```
 
 ---
 
-## 🛠️ Compilación
+## 🛠️ Descarga de imágenes
 
 ```
-pyinstaller --onefile GenerarCatalogo.py
+python DescargarImagenes.py
 ```
+
+El script `DescargarImagenes.py` lee la columna `ImagenURL` de `datos/productos.xlsx` y descarga las imágenes en `IMAGENES/Descargadas`.
 
 ## Subir a la rema
 
