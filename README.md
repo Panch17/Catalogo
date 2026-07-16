@@ -94,6 +94,36 @@ python DescargarImagenes.py
 
 El script `DescargarImagenes.py` lee la columna `ImagenURL` de `datos/productos.xlsx` y descarga las imágenes en `IMAGENES/Descargadas`.
 
+## 🌐 Panel de actualizacion en servidor
+
+Si quieres editar productos desde otra ubicacion (no solo local), usa el backend admin:
+
+1. Instala dependencias en tu entorno Python:
+	- `pip install flask openpyxl pandas jinja2`
+2. Arranca el servidor:
+	- `python ServidorActualizacion.py`
+3. Abre en navegador:
+	- `http://TU_SERVIDOR:8000/actualizar.html`
+4. Clave admin por defecto:
+	- `Zombie2`
+
+Puedes cambiar la clave y puerto con variables de entorno:
+
+- `ADMIN_KEY=TuClaveSegura`
+- `ADMIN_PORT=8000`
+
+Flujo recomendado:
+
+1. Editar productos en `actualizar.html`.
+2. Para "borrar" un producto, cambiar `Estatus` a `0` (no se elimina la fila).
+3. Click en `Guardar cambios`.
+4. Click en `Implementar` para regenerar catálogo.
+5. Opcional: confirmar deploy para ejecutar guardado/push automático.
+
+Nota:
+
+- GitHub Pages por si solo no ejecuta Python; este panel requiere tu servidor con `ServidorActualizacion.py` corriendo.
+
 ## Subir a la rema
 
 ```

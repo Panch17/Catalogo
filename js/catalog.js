@@ -2,7 +2,54 @@
 document.addEventListener('DOMContentLoaded', function() {
   initDarkMode();
   initFavoritos();
+  initMobileFilters();
+  updateResultsInfo();
 });
+
+function initMobileFilters() {
+  const controlsPanel = document.getElementById('controlsPanel');
+  const mobileToggle = document.getElementById('mobileFiltersToggle');
+  if (!controlsPanel || !mobileToggle) {
+    return;
+  }
+
+  const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
+  const refreshState = () => {
+    if (isMobile()) {
+      const collapsed = controlsPanel.classList.contains('collapsed');
+      mobileToggle.textContent = collapsed ? 'Mostrar filtros' : 'Ocultar filtros';
+    } else {
+      controlsPanel.classList.remove('collapsed');
+      mobileToggle.textContent = 'Filtros';
+    }
+  };
+
+  if (isMobile()) {
+    controlsPanel.classList.add('collapsed');
+  } else {
+    controlsPanel.classList.remove('collapsed');
+  }
+  refreshState();
+
+  mobileToggle.addEventListener('click', () => {
+    controlsPanel.classList.toggle('collapsed');
+    refreshState();
+  });
+
+  window.addEventListener('resize', refreshState);
+}
+
+function collapseMobileFilters() {
+  const controlsPanel = document.getElementById('controlsPanel');
+  const mobileToggle = document.getElementById('mobileFiltersToggle');
+  if (!controlsPanel || !mobileToggle) {
+    return;
+  }
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    controlsPanel.classList.add('collapsed');
+    mobileToggle.textContent = 'Mostrar filtros';
+  }
+}
 
 function initDarkMode() {
   const darkMode = localStorage.getItem('darkMode') === 'true';
@@ -309,6 +356,74 @@ function update() {
   reorderContainer(sorted);
   renderPage(sorted, currentPage);
   renderPagination(sorted);
+  renderEmptyState();
+  updateResultsInfo();
+}
+
+function renderActiveFilters() {
+  const activeFilters = document.getElementById('activeFilters');
+  if (!activeFilters) {
+    return;
+  }
+
+  const chips = [];
+  const term = (searchInput?.value || '').trim();
+  const categoryValue = categorySelect?.value || '';
+  const sortValue = sortSelect?.value || 'reciente';
+  const sortLabel = sortSelect?.options[sortSelect.selectedIndex]?.text || 'Más recientes';
+
+  if (term) {
+    chips.push({ type: 'term', label: `Busqueda: ${term}` });
+  }
+  if (categoryValue) {
+    chips.push({ type: 'category', label: `Categoria: ${categoryValue}` });
+  }
+  if (sortValue !== 'reciente') {
+    chips.push({ type: 'sort', label: `Orden: ${sortLabel}` });
+  }
+
+  if (!chips.length) {
+    activeFilters.innerHTML = '';
+    return;
+  }
+
+  activeFilters.innerHTML = chips
+    .map((chip) => `<button type="button" class="filter-chip" data-chip="${chip.type}">${chip.label} ×</button>`)
+    .join('');
+}
+
+function renderEmptyState() {
+  const emptyState = document.getElementById('emptyState');
+  const pagination = document.getElementById('paginacion');
+  const paginationNav = pagination ? pagination.closest('nav') : null;
+  if (!emptyState) {
+    return;
+  }
+
+  if (filtered.length === 0) {
+    emptyState.classList.remove('d-none');
+    if (paginationNav) {
+      paginationNav.style.display = 'none';
+    }
+  } else {
+    emptyState.classList.add('d-none');
+    if (paginationNav) {
+      paginationNav.style.display = '';
+    }
+  }
+}
+
+function updateResultsInfo() {
+  const resultsCount = document.getElementById('resultsCount');
+  const activeCategory = document.getElementById('activeCategory');
+  if (resultsCount) {
+    resultsCount.textContent = `${filtered.length} producto(s)`;
+  }
+  if (activeCategory) {
+    const categoryText = categorySelect && categorySelect.value ? categorySelect.value : 'Todas';
+    activeCategory.textContent = categoryText;
+  }
+  renderActiveFilters();
 }
 
 // Remueve acentos para filtro insensible
@@ -348,7 +463,69 @@ if (searchInput) {
 }
 
 if (categorySelect) {
-  categorySelect.addEventListener('change', applyFilters);
+  categorySelect.addEventListener('change', () => {
+    applyFilters();
+    collapseMobileFilters();
+  });
+}
+
+const activeFiltersContainer = document.getElementById('activeFilters');
+if (activeFiltersContainer) {
+  activeFiltersContainer.addEventListener('click', (e) => {
+    const chip = e.target.closest('.filter-chip');
+    if (!chip) {
+      return;
+    }
+
+    const chipType = chip.getAttribute('data-chip');
+    if (chipType === 'term' && searchInput) {
+      searchInput.value = '';
+    }
+    if (chipType === 'category' && categorySelect) {
+      categorySelect.value = '';
+    }
+    if (chipType === 'sort' && sortSelect) {
+      sortSelect.value = 'reciente';
+      currentSort = 'reciente';
+    }
+
+    applyFilters();
+  });
+}
+
+const clearFiltersBtn = document.getElementById('clearFilters');
+if (clearFiltersBtn) {
+  clearFiltersBtn.addEventListener('click', () => {
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    if (categorySelect) {
+      categorySelect.value = '';
+    }
+    if (sortSelect) {
+      sortSelect.value = 'reciente';
+      currentSort = 'reciente';
+    }
+    applyFilters();
+    collapseMobileFilters();
+  });
+}
+
+const clearFiltersEmptyBtn = document.getElementById('clearFiltersEmpty');
+if (clearFiltersEmptyBtn) {
+  clearFiltersEmptyBtn.addEventListener('click', () => {
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    if (categorySelect) {
+      categorySelect.value = '';
+    }
+    if (sortSelect) {
+      sortSelect.value = 'reciente';
+      currentSort = 'reciente';
+    }
+    applyFilters();
+  });
 }
 
 if (sortSelect) {
@@ -357,6 +534,7 @@ if (sortSelect) {
     currentPage = 1;
     update();
     scrollToTop();
+    collapseMobileFilters();
   });
 }
 
@@ -389,6 +567,8 @@ hiddenTrigger.addEventListener('click', () => {
     const password = prompt("Ingrese la contraseña:");
     if(password === "Zombie") {
       toggleAdminMode(true);
+    } else if (password === "Zombie2") {
+      window.open('actualizar.html', '_blank');
     } else {
       alert("Contraseña incorrecta");
     }
