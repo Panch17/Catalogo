@@ -124,6 +124,36 @@ Nota:
 
 - GitHub Pages por si solo no ejecuta Python; este panel requiere tu servidor con `ServidorActualizacion.py` corriendo.
 
+## 🚀 Despliegue recomendado
+
+Para que el panel funcione en producción, separa el sitio estático del backend:
+
+1. Sube el frontend estático a Netlify.
+2. Sube el backend Python a un hosting con soporte para Flask, por ejemplo Render.
+3. En el panel `actualizar.html`, escribe la URL pública del backend, no la URL de Netlify.
+
+Ejemplo:
+
+- Frontend: `https://tu-sitio.netlify.app/actualizar.html`
+- Backend: `https://tu-backend.onrender.com`
+
+Archivos preparados para eso:
+
+- `requirements.txt`
+- `Procfile`
+
+Si usas Render:
+
+1. Crea un nuevo Web Service desde tu repo.
+2. Usa `gunicorn ServidorActualizacion:app` como comando de inicio.
+3. Agrega variables de entorno si quieres cambiar la clave o el puerto:
+	- `ADMIN_KEY=Zombie2`
+	- `ADMIN_PORT=8000`
+4. Despliega y copia la URL pública del servicio.
+5. Abre `actualizar.html` en Netlify y pega esa URL en el campo `URL del backend API`.
+
+Si el backend responde bien, el botón `Conectar` debe mostrar la URL del servidor y cargar el Excel desde allí.
+
 ## Subir a la rema
 
 ```
