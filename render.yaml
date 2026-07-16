@@ -6,6 +6,8 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn ServidorActualizacion:app
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
       - key: ADMIN_KEY
         value: Zombie2
       - key: ADMIN_PORT
