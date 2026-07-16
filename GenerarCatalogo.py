@@ -11,8 +11,7 @@ if sys.stdout.encoding != 'utf-8':
 # =============================================
 # CONFIGURACIÓN DE RUTAS (¡AJUSTA ESTO!)
 # =============================================
-# SCRIPT_DIR = r"C:\Users\Lpz_p\Desktop\Mi Proyecto Gib\Catalogo"
-SCRIPT_DIR = r"C:\Users\Admin\Desktop\Proyecto\Catalogo"
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Crear carpetas si no existen
 DATOS_DIR = os.path.join(SCRIPT_DIR, "datos")
 STYLE_DIR = os.path.join(SCRIPT_DIR, "style")
