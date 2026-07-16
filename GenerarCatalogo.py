@@ -1669,6 +1669,11 @@ update_html_template = """<!DOCTYPE html>
       return value || window.location.origin;
     }
 
+    function looksLikeStaticFrontendUrl(value) {
+      const text = String(value || '').trim().toLowerCase();
+      return text.includes('netlify.app') || text.includes('github.io');
+    }
+
     function showStatus(message, kind = 'secondary') {
       statusBox.className = `alert alert-${kind} small mb-3`;
       statusBox.textContent = message;
@@ -1765,6 +1770,11 @@ update_html_template = """<!DOCTYPE html>
       key = document.getElementById('adminKey').value.trim();
       if (!key) {
         showStatus('Ingresa la clave admin.', 'warning');
+        return;
+      }
+      if (looksLikeStaticFrontendUrl(apiBaseInput.value)) {
+        setControlsEnabled(false);
+        showStatus('Esa URL es del frontend estático. Debes poner la URL de un backend con Flask, no la de Netlify/GitHub Pages.', 'danger');
         return;
       }
       saveApiBase(apiBaseInput.value);
