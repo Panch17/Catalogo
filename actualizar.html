@@ -52,6 +52,9 @@
           <input type="password" id="adminKey" class="form-control" placeholder="Clave admin" />
           <button id="connectBtn" class="btn btn-primary">Conectar</button>
         </div>
+        <div class="col-12 col-md-4">
+          <input type="url" id="apiBase" class="form-control" placeholder="URL del backend API" />
+        </div>
         <div class="col-6 col-md-2 d-grid">
           <button id="addRow" class="btn btn-outline-secondary" disabled>Agregar</button>
         </div>
@@ -102,11 +105,34 @@
     const tbody = document.querySelector('#productsTable tbody');
     const statusBox = document.getElementById('statusBox');
     const connectBtn = document.getElementById('connectBtn');
+    const apiBaseInput = document.getElementById('apiBase');
     const addRowBtn = document.getElementById('addRow');
     const saveBtn = document.getElementById('saveChanges');
     const generateBtn = document.getElementById('generateBtn');
     const implementBtn = document.getElementById('implementBtn');
     const toggleActiveBtn = document.getElementById('toggleActive');
+
+    function loadApiBase() {
+      const fromQuery = new URLSearchParams(window.location.search).get('apiBase');
+      if (fromQuery) {
+        return fromQuery;
+      }
+      return localStorage.getItem('catalogoApiBase') || window.location.origin;
+    }
+
+    function saveApiBase(value) {
+      const normalized = value.trim();
+      if (normalized) {
+        localStorage.setItem('catalogoApiBase', normalized);
+      } else {
+        localStorage.removeItem('catalogoApiBase');
+      }
+    }
+
+    function getApiBase() {
+      const value = apiBaseInput.value.trim();
+      return value || window.location.origin;
+    }
 
     function showStatus(message, kind = 'secondary') {
       statusBox.className = `alert alert-${kind} small mb-3`;
@@ -114,7 +140,8 @@
     }
 
     function api(path, options = {}) {
-      return fetch(path, {
+      const url = new URL(path, getApiBase());
+      return fetch(url, {
         ...options,
         headers: {
           'Content-Type': 'application/json',
@@ -194,19 +221,25 @@
       toggleActiveBtn.disabled = !enabled;
     }
 
+    apiBaseInput.value = loadApiBase();
+    apiBaseInput.addEventListener('change', () => {
+      saveApiBase(apiBaseInput.value);
+    });
+
     connectBtn.addEventListener('click', async () => {
       key = document.getElementById('adminKey').value.trim();
       if (!key) {
         showStatus('Ingresa la clave admin.', 'warning');
         return;
       }
+      saveApiBase(apiBaseInput.value);
       try {
         await loadProducts();
         setControlsEnabled(true);
         showStatus('Conectado correctamente.', 'success');
       } catch (err) {
         setControlsEnabled(false);
-        showStatus('Clave incorrecta o servidor no disponible.', 'danger');
+        showStatus('Clave incorrecta, servidor no disponible o URL del backend incorrecta.', 'danger');
       }
     });
 

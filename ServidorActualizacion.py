@@ -23,6 +23,17 @@ lock = Lock()
 app = Flask(__name__, static_folder=str(BASE_DIR), static_url_path="")
 
 
+@app.after_request
+def add_cors_headers(response):
+        origin = request.headers.get("Origin")
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Vary"] = "Origin"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Admin-Key"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        return response
+
+
 EXPECTED_COLUMNS = [
     "Estatus",
     "Nombre",
@@ -134,6 +145,8 @@ def _is_authorized(req: request) -> bool:
 
 @app.before_request
 def authorize_api() -> tuple | None:
+    if request.method == "OPTIONS" and request.path.startswith("/api/"):
+        return ("", 204)
     if request.path.startswith("/api/") and not _is_authorized(request):
         return jsonify({"error": "No autorizado"}), 401
     return None
