@@ -1741,7 +1741,7 @@ update_html_template = """<!DOCTYPE html>
     async function loadProducts() {
       const response = await api('/api/productos');
       if (!response.ok) {
-        throw new Error('No se pudo leer el listado');
+        throw new Error(`No se pudo leer el listado (${response.status})`);
       }
       const payload = await response.json();
       products = (payload.items || []).map(normalizeProduct);
@@ -1771,10 +1771,10 @@ update_html_template = """<!DOCTYPE html>
       try {
         await loadProducts();
         setControlsEnabled(true);
-        showStatus('Conectado correctamente.', 'success');
+        showStatus(`Conectado correctamente a ${getApiBase()}.`, 'success');
       } catch (err) {
         setControlsEnabled(false);
-        showStatus('Clave incorrecta, servidor no disponible o URL del backend incorrecta.', 'danger');
+        showStatus(`Clave incorrecta, servidor no disponible o URL del backend incorrecta: ${getApiBase()}.`, 'danger');
       }
     });
 
