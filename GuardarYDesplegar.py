@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from collections import Counter
@@ -27,6 +28,14 @@ def run_git_command(repo_dir: Path, *args: str, check: bool = True) -> subproces
         capture_output=True,
         check=check,
     )
+
+
+def normalize_text(value: object) -> str:
+    return str(value or "").strip()
+
+
+def is_non_interactive() -> bool:
+    return (not sys.stdin.isatty()) or bool(os.getenv("RENDER")) or bool(os.getenv("CI"))
 
 
 def get_git_config(repo_dir: Path, key: str) -> str:
@@ -64,7 +73,23 @@ def ensure_git_identity(repo_dir: Path) -> bool:
     if current_name and current_email:
         return True
 
+    env_name = normalize_text(os.getenv("GIT_AUTHOR_NAME")) or normalize_text(os.getenv("GITHUB_ACTOR"))
+    env_email = normalize_text(os.getenv("GIT_AUTHOR_EMAIL"))
+    if env_name and env_email:
+        run_git_command(repo_dir, "config", "user.name", env_name)
+        run_git_command(repo_dir, "config", "user.email", env_email)
+        print(f"Identidad Git configurada desde entorno: {env_name} <{env_email}>\n")
+        return True
+
     default_name, default_email = get_last_commit_author(repo_dir)
+
+    if is_non_interactive():
+        auto_name = current_name or default_name or env_name or "Catalogo Bot"
+        auto_email = current_email or default_email or env_email or "catalogo-bot@local"
+        run_git_command(repo_dir, "config", "user.name", auto_name)
+        run_git_command(repo_dir, "config", "user.email", auto_email)
+        print(f"Identidad Git configurada automaticamente: {auto_name} <{auto_email}>\n")
+        return True
 
     print("Git no tiene configurados user.name y user.email para esta laptop o este repositorio.")
     if default_name and default_email:
@@ -137,7 +162,38 @@ def build_commit_message(entries: list[tuple[str, str]]) -> str:
 def get_current_branch(repo_dir: Path) -> str:
     result = run_git_command(repo_dir, "branch", "--show-current")
     branch = result.stdout.strip()
-    return branch or "main"
+    return normalize_text(os.getenv("GIT_BRANCH")) or branch or "main"
+
+
+def infer_repo_slug_from_origin(repo_dir: Path) -> str:
+    result = run_git_command(repo_dir, "remote", "get-url", "origin", check=False)
+    if result.returncode != 0:
+        return ""
+
+    remote = result.stdout.strip()
+    if remote.startswith("git@github.com:"):
+        slug = remote.split("git@github.com:", 1)[1]
+    elif "github.com/" in remote:
+        slug = remote.split("github.com/", 1)[1]
+    else:
+        return ""
+
+    if slug.endswith(".git"):
+        slug = slug[:-4]
+    return slug.strip("/")
+
+
+def push_changes(repo_dir: Path, branch: str) -> subprocess.CompletedProcess[str]:
+    token = normalize_text(os.getenv("GITHUB_TOKEN")) or normalize_text(os.getenv("GH_TOKEN"))
+    if not token:
+        return run_git_command(repo_dir, "push", "origin", branch)
+
+    repo_slug = normalize_text(os.getenv("GITHUB_REPO")) or infer_repo_slug_from_origin(repo_dir)
+    if not repo_slug:
+        raise RuntimeError("No se encontro GITHUB_REPO ni se pudo inferir origin para push con token.")
+
+    auth_remote = f"https://x-access-token:{token}@github.com/{repo_slug}.git"
+    return run_git_command(repo_dir, "push", auth_remote, f"HEAD:{branch}")
 
 
 def main() -> int:
@@ -147,6 +203,8 @@ def main() -> int:
         run_git_command(repo_dir, "rev-parse", "--is-inside-work-tree")
     except subprocess.CalledProcessError:
         print("Este directorio no es un repositorio Git.")
+        print("En Render, el deploy automatico por Git requiere que el runtime tenga repo Git y credenciales.")
+        print("Configura GITHUB_TOKEN y GITHUB_REPO o usa auto-deploy desde Dashboard.")
         return 1
 
     entries = get_changed_entries(repo_dir)
@@ -170,14 +228,31 @@ def main() -> int:
     try:
         run_git_command(repo_dir, "status")
         run_git_command(repo_dir, "add", ".")
-        run_git_command(repo_dir, "commit", "-m", commit_message)
-        run_git_command(repo_dir, "push", "origin", branch)
+        commit_result = run_git_command(repo_dir, "commit", "-m", commit_message, check=False)
+        if commit_result.returncode != 0:
+            commit_out = f"{commit_result.stdout}\n{commit_result.stderr}".lower()
+            if "nothing to commit" not in commit_out and "no changes added" not in commit_out:
+                if commit_result.stdout:
+                    print(commit_result.stdout.strip())
+                if commit_result.stderr:
+                    print(commit_result.stderr.strip())
+                return commit_result.returncode or 1
+            print("No hubo cambios nuevos para commit despues de sincronizar archivos.")
+
+        push_result = push_changes(repo_dir, branch)
+        if push_result.stdout:
+            print(push_result.stdout.strip())
+        if push_result.stderr:
+            print(push_result.stderr.strip())
     except subprocess.CalledProcessError as exc:
         if exc.stdout:
             print(exc.stdout.strip())
         if exc.stderr:
             print(exc.stderr.strip())
         return exc.returncode or 1
+    except RuntimeError as exc:
+        print(str(exc))
+        return 1
 
     print("Cambios guardados y enviados correctamente.")
     return 0
