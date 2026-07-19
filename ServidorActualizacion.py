@@ -222,57 +222,63 @@ def _deploy_changes() -> tuple[int, str, str]:
 
 @app.route("/api/generar", methods=["POST"])
 def generate_catalog_route() -> tuple:
-    code, out, err = _generate_catalog()
-    if code != 0:
-        return (
-            jsonify({"error": "Fallo al generar catalogo", "stdout": out, "stderr": err}),
-            500,
-        )
+    try:
+        code, out, err = _generate_catalog()
+        if code != 0:
+            return (
+                jsonify({"error": "Fallo al generar catalogo", "stdout": out, "stderr": err}),
+                500,
+            )
 
-    return jsonify({"message": "Catalogo regenerado correctamente", "stdout": out, "stderr": err})
+        return jsonify({"message": "Catalogo regenerado correctamente", "stdout": out, "stderr": err})
+    except Exception as exc:
+        return jsonify({"error": f"Error interno al generar catalogo: {exc}"}), 500
 
 
 @app.route("/api/implementar", methods=["POST"])
 def implement_catalog() -> tuple:
-    payload = request.get_json(silent=True) or {}
-    deploy = _parse_bool(payload.get("deploy"), default=True)
+    try:
+        payload = request.get_json(silent=True) or {}
+        deploy = _parse_bool(payload.get("deploy"), default=True)
 
-    code, out, err = _generate_catalog()
-    if code != 0:
-        return (
-            jsonify({"error": "Fallo al generar catalogo", "stdout": out, "stderr": err}),
-            500,
-        )
-
-    message = "Catalogo regenerado correctamente"
-    deploy_stdout = ""
-    deploy_stderr = ""
-
-    if deploy:
-        deploy_code, deploy_stdout, deploy_stderr = _deploy_changes()
-        if deploy_code != 0:
-            return jsonify(
-                {
-                    "message": "Catalogo regenerado correctamente. El deploy automatico fallo.",
-                    "deploy_ok": False,
-                    "stdout": out,
-                    "stderr": err,
-                    "deploy_stdout": deploy_stdout,
-                    "deploy_stderr": deploy_stderr,
-                }
+        code, out, err = _generate_catalog()
+        if code != 0:
+            return (
+                jsonify({"error": "Fallo al generar catalogo", "stdout": out, "stderr": err}),
+                500,
             )
-        message = "Catalogo regenerado y desplegado correctamente"
 
-    return jsonify(
-        {
-            "message": message,
-            "deploy_ok": True if deploy else None,
-            "stdout": out,
-            "stderr": err,
-            "deploy_stdout": deploy_stdout,
-            "deploy_stderr": deploy_stderr,
-        }
-    )
+        message = "Catalogo regenerado correctamente"
+        deploy_stdout = ""
+        deploy_stderr = ""
+
+        if deploy:
+            deploy_code, deploy_stdout, deploy_stderr = _deploy_changes()
+            if deploy_code != 0:
+                return jsonify(
+                    {
+                        "message": "Catalogo regenerado correctamente. El deploy automatico fallo.",
+                        "deploy_ok": False,
+                        "stdout": out,
+                        "stderr": err,
+                        "deploy_stdout": deploy_stdout,
+                        "deploy_stderr": deploy_stderr,
+                    }
+                )
+            message = "Catalogo regenerado y desplegado correctamente"
+
+        return jsonify(
+            {
+                "message": message,
+                "deploy_ok": True if deploy else None,
+                "stdout": out,
+                "stderr": err,
+                "deploy_stdout": deploy_stdout,
+                "deploy_stderr": deploy_stderr,
+            }
+        )
+    except Exception as exc:
+        return jsonify({"error": f"Error interno al implementar: {exc}"}), 500
 
 
 if __name__ == "__main__":
