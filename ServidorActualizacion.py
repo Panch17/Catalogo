@@ -251,21 +251,22 @@ def implement_catalog() -> tuple:
     if deploy:
         deploy_code, deploy_stdout, deploy_stderr = _deploy_changes()
         if deploy_code != 0:
-            return (
-                jsonify(
-                    {
-                        "error": "Catalogo generado, pero fallo el deploy",
-                        "stdout": deploy_stdout,
-                        "stderr": deploy_stderr,
-                    }
-                ),
-                500,
+            return jsonify(
+                {
+                    "message": "Catalogo regenerado correctamente. El deploy automatico fallo.",
+                    "deploy_ok": False,
+                    "stdout": out,
+                    "stderr": err,
+                    "deploy_stdout": deploy_stdout,
+                    "deploy_stderr": deploy_stderr,
+                }
             )
         message = "Catalogo regenerado y desplegado correctamente"
 
     return jsonify(
         {
             "message": message,
+            "deploy_ok": True if deploy else None,
             "stdout": out,
             "stderr": err,
             "deploy_stdout": deploy_stdout,
