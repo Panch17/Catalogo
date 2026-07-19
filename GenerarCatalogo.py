@@ -1583,11 +1583,11 @@ update_html_template = """<!DOCTYPE html>
 
       <div class="row g-2 mb-3">
         <div class="col-12 col-md-4 d-flex gap-2">
-          <input type="password" id="adminKey" class="form-control" placeholder="Clave admin" />
+          <input type="hidden" id="adminKey" />
           <button id="connectBtn" class="btn btn-primary">Conectar</button>
         </div>
         <div class="col-12 col-md-4">
-          <input type="url" id="apiBase" class="form-control" placeholder="URL del backend API" />
+          <input type="hidden" id="apiBase" />
         </div>
         <div class="col-6 col-md-2 d-grid">
           <button id="addRow" class="btn btn-outline-secondary" disabled>Agregar</button>
@@ -1634,6 +1634,8 @@ update_html_template = """<!DOCTYPE html>
     let products = [];
     let showOnlyActive = false;
     let key = '';
+    const DEFAULT_ADMIN_KEY = 'Zombie2';
+    const DEFAULT_API_BASE = 'https://catalogo-2-zzdz.onrender.com';
     const columns = ['Estatus', 'Nombre', 'Descripcion', 'Precio', 'PrecioRebaja', 'Categoria', 'ImagenURL', 'LinkCompra', 'Caja'];
 
     const tbody = document.querySelector('#productsTable tbody');
@@ -1648,7 +1650,7 @@ update_html_template = """<!DOCTYPE html>
     const adminKeyInput = document.getElementById('adminKey');
 
     function loadAdminKey() {
-      return localStorage.getItem('catalogoAdminKey') || 'Zombie2';
+      return localStorage.getItem('catalogoAdminKey') || DEFAULT_ADMIN_KEY;
     }
 
     function saveAdminKey(value) {
@@ -1665,7 +1667,7 @@ update_html_template = """<!DOCTYPE html>
       if (fromQuery) {
         return fromQuery;
       }
-      return localStorage.getItem('catalogoApiBase') || 'https://catalogo-2-zzdz.onrender.com';
+      return localStorage.getItem('catalogoApiBase') || DEFAULT_API_BASE;
     }
 
     function saveApiBase(value) {
@@ -1678,8 +1680,8 @@ update_html_template = """<!DOCTYPE html>
     }
 
     function getApiBase() {
-      const value = apiBaseInput.value.trim();
-      return value || window.location.origin;
+      const value = (apiBaseInput.value || '').trim();
+      return value || DEFAULT_API_BASE;
     }
 
     function looksLikeStaticFrontendUrl(value) {
@@ -1789,23 +1791,20 @@ update_html_template = """<!DOCTYPE html>
 
     adminKeyInput.value = loadAdminKey();
     apiBaseInput.value = loadApiBase();
-    adminKeyInput.addEventListener('change', () => {
-      saveAdminKey(adminKeyInput.value);
-    });
-    apiBaseInput.addEventListener('change', () => {
-      saveApiBase(apiBaseInput.value);
-    });
 
     connectBtn.addEventListener('click', async () => {
       key = adminKeyInput.value.trim();
-      if (!key) {
-        showStatus('Ingresa la clave admin.', 'warning');
-        return;
-      }
       if (looksLikeStaticFrontendUrl(apiBaseInput.value)) {
         setControlsEnabled(false);
         showStatus('Esa URL es del frontend estático. Debes poner la URL de un backend con Flask, no la de Netlify/GitHub Pages.', 'danger');
         return;
+      }
+      if (!key) {
+        key = DEFAULT_ADMIN_KEY;
+        adminKeyInput.value = key;
+      }
+      if (!apiBaseInput.value.trim()) {
+        apiBaseInput.value = DEFAULT_API_BASE;
       }
       saveAdminKey(key);
       saveApiBase(apiBaseInput.value);
