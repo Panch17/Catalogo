@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import base64
+import json
 import os
 import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
+from urllib import error as urlerror
+from urllib import parse as urlparse
+from urllib import request as urlrequest
 
 
 STATUS_LABELS = {
@@ -183,6 +188,103 @@ def infer_repo_slug_from_origin(repo_dir: Path) -> str:
     return slug.strip("/")
 
 
+def collect_files_for_api_deploy(repo_dir: Path) -> list[Path]:
+    default_files = ["datos/productos.xlsx", "index.html"]
+    raw = normalize_text(os.getenv("DEPLOY_FILES"))
+    values = [item.strip() for item in raw.split(",") if item.strip()] if raw else default_files
+
+    files: list[Path] = []
+    for rel in values:
+        candidate = (repo_dir / rel).resolve()
+        try:
+            candidate.relative_to(repo_dir.resolve())
+        except ValueError:
+            continue
+        if candidate.is_file():
+            files.append(candidate)
+    return files
+
+
+def github_api_request(
+    method: str,
+    url: str,
+    token: str,
+    payload: dict | None = None,
+) -> dict:
+    data = None
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "catalogo-deploy-script",
+    }
+    if payload is not None:
+        data = json.dumps(payload).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+
+    req = urlrequest.Request(url, method=method, headers=headers, data=data)
+    try:
+        with urlrequest.urlopen(req, timeout=30) as response:
+            body = response.read().decode("utf-8")
+            return json.loads(body) if body else {}
+    except urlerror.HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        message = raw
+        try:
+            parsed = json.loads(raw)
+            message = parsed.get("message") or raw
+        except json.JSONDecodeError:
+            pass
+        raise RuntimeError(f"GitHub API {exc.code}: {message}") from exc
+    except urlerror.URLError as exc:
+        raise RuntimeError(f"No se pudo conectar a GitHub API: {exc.reason}") from exc
+
+
+def get_remote_file_sha(repo_slug: str, branch: str, rel_path: Path, token: str) -> str:
+    encoded_path = urlparse.quote(rel_path.as_posix(), safe="/")
+    url = f"https://api.github.com/repos/{repo_slug}/contents/{encoded_path}?ref={urlparse.quote(branch)}"
+    try:
+        payload = github_api_request("GET", url, token)
+    except RuntimeError as exc:
+        text = str(exc)
+        if "GitHub API 404" in text:
+            return ""
+        raise
+    return str(payload.get("sha") or "")
+
+
+def push_files_via_github_api(repo_dir: Path, branch: str, commit_message: str) -> None:
+    token = normalize_text(os.getenv("GITHUB_TOKEN")) or normalize_text(os.getenv("GH_TOKEN"))
+    if not token:
+        raise RuntimeError("Falta GITHUB_TOKEN (o GH_TOKEN) para subir cambios a GitHub.")
+
+    repo_slug = normalize_text(os.getenv("GITHUB_REPO")) or infer_repo_slug_from_origin(repo_dir)
+    if not repo_slug:
+        raise RuntimeError("Falta GITHUB_REPO y no se pudo inferir origin para subir a GitHub.")
+
+    files = collect_files_for_api_deploy(repo_dir)
+    if not files:
+        raise RuntimeError("No se encontraron archivos a subir. Revisa DEPLOY_FILES o existencia de index.html/datos/productos.xlsx.")
+
+    for absolute_file in files:
+        rel_path = absolute_file.relative_to(repo_dir)
+        encoded_path = urlparse.quote(rel_path.as_posix(), safe="/")
+        url = f"https://api.github.com/repos/{repo_slug}/contents/{encoded_path}"
+
+        content_b64 = base64.b64encode(absolute_file.read_bytes()).decode("ascii")
+        sha = get_remote_file_sha(repo_slug, branch, rel_path, token)
+        payload = {
+            "message": commit_message,
+            "content": content_b64,
+            "branch": branch,
+        }
+        if sha:
+            payload["sha"] = sha
+
+        github_api_request("PUT", url, token, payload)
+        print(f"Subido por API: {rel_path.as_posix()}")
+
+
 def push_changes(repo_dir: Path, branch: str) -> subprocess.CompletedProcess[str]:
     token = normalize_text(os.getenv("GITHUB_TOKEN")) or normalize_text(os.getenv("GH_TOKEN"))
     if not token:
@@ -199,13 +301,24 @@ def push_changes(repo_dir: Path, branch: str) -> subprocess.CompletedProcess[str
 def main() -> int:
     repo_dir = Path(__file__).resolve().parent
 
-    try:
-        run_git_command(repo_dir, "rev-parse", "--is-inside-work-tree")
-    except subprocess.CalledProcessError:
-        print("Este directorio no es un repositorio Git.")
-        print("En Render, el deploy automatico por Git requiere que el runtime tenga repo Git y credenciales.")
-        print("Configura GITHUB_TOKEN y GITHUB_REPO o usa auto-deploy desde Dashboard.")
-        return 1
+    git_check = run_git_command(repo_dir, "rev-parse", "--is-inside-work-tree", check=False)
+    git_available = git_check.returncode == 0
+    branch = get_current_branch(repo_dir)
+
+    if not git_available:
+        print("Runtime sin metadata Git. Se intentara subida por GitHub API.")
+        try:
+            push_files_via_github_api(
+                repo_dir,
+                branch,
+                f"Actualiza catalogo desde panel ({branch})",
+            )
+        except RuntimeError as exc:
+            print(str(exc))
+            return 1
+
+        print("Cambios subidos correctamente por GitHub API.")
+        return 0
 
     entries = get_changed_entries(repo_dir)
     if not entries:
@@ -216,8 +329,6 @@ def main() -> int:
         return 1
 
     commit_message = build_commit_message(entries)
-    branch = get_current_branch(repo_dir)
-
     print("Cambios detectados:")
     for status, path_text in entries:
         print(f"- {STATUS_LABELS.get(status, status)}: {path_text}")
@@ -249,7 +360,14 @@ def main() -> int:
             print(exc.stdout.strip())
         if exc.stderr:
             print(exc.stderr.strip())
-        return exc.returncode or 1
+        print("Fallo git push. Se intentara respaldo por GitHub API para archivos clave.")
+        try:
+            push_files_via_github_api(repo_dir, branch, commit_message)
+        except RuntimeError as fallback_exc:
+            print(str(fallback_exc))
+            return exc.returncode or 1
+        print("Respaldo por GitHub API completado.")
+        return 0
     except RuntimeError as exc:
         print(str(exc))
         return 1
