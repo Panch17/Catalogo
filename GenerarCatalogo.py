@@ -1690,6 +1690,19 @@ update_html_template = """<!DOCTYPE html>
       });
     }
 
+    async function readResponsePayload(response) {
+      const rawText = await response.text();
+      if (!rawText) {
+        return {};
+      }
+
+      try {
+        return JSON.parse(rawText);
+      } catch {
+        return { rawText };
+      }
+    }
+
     function normalizeProduct(row) {
       return {
         Estatus: Number(row.Estatus) === 0 ? 0 : 1,
@@ -1825,9 +1838,10 @@ update_html_template = """<!DOCTYPE html>
         method: 'POST',
         body: JSON.stringify({})
       });
-      const payload = await response.json().catch(() => ({}));
+      const payload = await readResponsePayload(response);
       if (!response.ok) {
-        showStatus(`Error al generar catalogo: ${payload.error || 'desconocido'}`, 'danger');
+        const detail = (payload.error || payload.rawText || 'desconocido').toString().trim().split('\n')[0];
+        showStatus(`Error al generar catalogo: ${detail.slice(0, 220)}`, 'danger');
         return;
       }
       showStatus(payload.message || 'Catalogo regenerado correctamente.', 'success');
@@ -1839,9 +1853,15 @@ update_html_template = """<!DOCTYPE html>
         method: 'POST',
         body: JSON.stringify({ deploy })
       });
-      const payload = await response.json().catch(() => ({}));
+      const payload = await readResponsePayload(response);
       if (!response.ok) {
-        showStatus(`Error al implementar: ${payload.error || 'desconocido'}`, 'danger');
+        const detail = (payload.error || payload.rawText || 'desconocido').toString().trim().split('\n')[0];
+        showStatus(`Error al implementar: ${detail.slice(0, 220)}`, 'danger');
+        return;
+      }
+      if (payload.deploy_ok === false) {
+        const detail = (payload.deploy_stderr || payload.deploy_stdout || payload.message || 'Sin detalle tecnico').toString().trim().split('\n')[0];
+        showStatus(`Catalogo actualizado, pero fallo el push a GitHub: ${detail.slice(0, 220)}`, 'warning');
         return;
       }
       showStatus(payload.message || 'Catalogo regenerado correctamente.', 'success');
