@@ -7,7 +7,7 @@ from pathlib import Path
 from threading import Lock
 
 import pandas as pd
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Request, jsonify, request, send_from_directory
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -138,7 +138,23 @@ def _run_python_script(script_path: Path) -> tuple[int, str, str]:
     return result.returncode, result.stdout, result.stderr
 
 
-def _is_authorized(req: request) -> bool:
+def _parse_bool(value: object, default: bool = True) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    if isinstance(value, (int, float)):
+        return value != 0
+
+    text = str(value).strip().lower()
+    if text in {"1", "true", "yes", "y", "si", "sí", "on"}:
+        return True
+    if text in {"0", "false", "no", "n", "off", ""}:
+        return False
+    return default
+
+
+def _is_authorized(req: Request) -> bool:
     provided_key = req.headers.get("X-Admin-Key", "")
     return bool(provided_key) and provided_key == ADMIN_KEY
 
@@ -219,7 +235,7 @@ def generate_catalog_route() -> tuple:
 @app.route("/api/implementar", methods=["POST"])
 def implement_catalog() -> tuple:
     payload = request.get_json(silent=True) or {}
-    deploy = bool(payload.get("deploy", True))
+    deploy = _parse_bool(payload.get("deploy"), default=True)
 
     code, out, err = _generate_catalog()
     if code != 0:
