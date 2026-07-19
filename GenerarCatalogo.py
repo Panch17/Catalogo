@@ -1645,13 +1645,27 @@ update_html_template = """<!DOCTYPE html>
     const generateBtn = document.getElementById('generateBtn');
     const implementBtn = document.getElementById('implementBtn');
     const toggleActiveBtn = document.getElementById('toggleActive');
+    const adminKeyInput = document.getElementById('adminKey');
+
+    function loadAdminKey() {
+      return localStorage.getItem('catalogoAdminKey') || 'Zombie2';
+    }
+
+    function saveAdminKey(value) {
+      const normalized = value.trim();
+      if (normalized) {
+        localStorage.setItem('catalogoAdminKey', normalized);
+      } else {
+        localStorage.removeItem('catalogoAdminKey');
+      }
+    }
 
     function loadApiBase() {
       const fromQuery = new URLSearchParams(window.location.search).get('apiBase');
       if (fromQuery) {
         return fromQuery;
       }
-      return localStorage.getItem('catalogoApiBase') || window.location.origin;
+      return localStorage.getItem('catalogoApiBase') || 'https://catalogo-2-zzdz.onrender.com';
     }
 
     function saveApiBase(value) {
@@ -1773,13 +1787,17 @@ update_html_template = """<!DOCTYPE html>
       toggleActiveBtn.disabled = !enabled;
     }
 
+    adminKeyInput.value = loadAdminKey();
     apiBaseInput.value = loadApiBase();
+    adminKeyInput.addEventListener('change', () => {
+      saveAdminKey(adminKeyInput.value);
+    });
     apiBaseInput.addEventListener('change', () => {
       saveApiBase(apiBaseInput.value);
     });
 
     connectBtn.addEventListener('click', async () => {
-      key = document.getElementById('adminKey').value.trim();
+      key = adminKeyInput.value.trim();
       if (!key) {
         showStatus('Ingresa la clave admin.', 'warning');
         return;
@@ -1789,6 +1807,7 @@ update_html_template = """<!DOCTYPE html>
         showStatus('Esa URL es del frontend estático. Debes poner la URL de un backend con Flask, no la de Netlify/GitHub Pages.', 'danger');
         return;
       }
+      saveAdminKey(key);
       saveApiBase(apiBaseInput.value);
       try {
         await loadProducts();
