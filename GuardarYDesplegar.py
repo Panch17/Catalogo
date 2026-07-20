@@ -22,6 +22,12 @@ STATUS_LABELS = {
     "?": "nuevo",
 }
 
+NON_FAST_FORWARD_MARKERS = (
+    "fetch first",
+    "non-fast-forward",
+    "failed to push some refs",
+)
+
 
 def run_git_command(repo_dir: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
@@ -298,6 +304,77 @@ def push_changes(repo_dir: Path, branch: str) -> subprocess.CompletedProcess[str
     return run_git_command(repo_dir, "push", auth_remote, f"HEAD:{branch}")
 
 
+def get_upstream_branch(repo_dir: Path) -> str:
+    result = run_git_command(
+        repo_dir,
+        "rev-parse",
+        "--abbrev-ref",
+        "--symbolic-full-name",
+        "@{upstream}",
+        check=False,
+    )
+    if result.returncode != 0:
+        return ""
+    return result.stdout.strip()
+
+
+def get_branch_sync_counts(repo_dir: Path) -> tuple[int, int] | None:
+    if not get_upstream_branch(repo_dir):
+        return None
+
+    result = run_git_command(repo_dir, "rev-list", "--left-right", "--count", "@{upstream}...HEAD")
+    counts = result.stdout.strip().split()
+    if len(counts) != 2:
+        return None
+
+    behind_count, ahead_count = (int(value) for value in counts)
+    return behind_count, ahead_count
+
+
+def has_staged_changes(repo_dir: Path) -> bool:
+    result = run_git_command(repo_dir, "diff", "--cached", "--quiet", check=False)
+    return result.returncode == 1
+
+
+def print_git_failure(error: subprocess.CalledProcessError) -> None:
+    if error.stdout:
+        print(error.stdout.strip())
+    if error.stderr:
+        print(error.stderr.strip())
+
+
+def is_non_fast_forward_error(error: subprocess.CalledProcessError) -> bool:
+    combined_output = "\n".join(part for part in (error.stdout, error.stderr) if part).lower()
+    return any(marker in combined_output for marker in NON_FAST_FORWARD_MARKERS)
+
+
+def push_with_rebase_retry(repo_dir: Path, branch: str) -> None:
+    upstream_branch = get_upstream_branch(repo_dir)
+    push_args = ["push", "origin", branch]
+    if not upstream_branch:
+        push_args.insert(1, "-u")
+
+    try:
+        run_git_command(repo_dir, *push_args)
+        return
+    except subprocess.CalledProcessError as error:
+        if not is_non_fast_forward_error(error):
+            raise
+
+        print("El remoto tiene cambios nuevos. Intentando sincronizar con git pull --rebase...")
+
+    try:
+        run_git_command(repo_dir, "pull", "--rebase", "origin", branch)
+    except subprocess.CalledProcessError as error:
+        print_git_failure(error)
+        print(
+            "No se pudo sincronizar automaticamente. Resuelve el rebase manualmente y vuelve a intentar."
+        )
+        raise
+
+    run_git_command(repo_dir, *push_args)
+
+
 def main() -> int:
     repo_dir = Path(__file__).resolve().parent
 
@@ -321,56 +398,44 @@ def main() -> int:
         return 0
 
     entries = get_changed_entries(repo_dir)
-    if not entries:
-        print("No hay cambios para guardar y desplegar.")
+    branch = get_current_branch(repo_dir)
+    sync_counts = get_branch_sync_counts(repo_dir)
+
+    if not entries and (sync_counts is None or sync_counts[1] == 0):
+        print("No hay cambios para guardar ni commits pendientes para enviar.")
         return 0
 
-    if not ensure_git_identity(repo_dir):
-        return 1
+    commit_message = build_commit_message(entries) if entries else ""
 
-    commit_message = build_commit_message(entries)
-    print("Cambios detectados:")
-    for status, path_text in entries:
-        print(f"- {STATUS_LABELS.get(status, status)}: {path_text}")
+    if entries:
+        if not ensure_git_identity(repo_dir):
+            return 1
 
-    print(f"\nMensaje de commit: {commit_message}")
+        print("Cambios detectados:")
+        for status, path_text in entries:
+            print(f"- {STATUS_LABELS.get(status, status)}: {path_text}")
+
+        print(f"\nMensaje de commit: {commit_message}")
+    else:
+        print("No hay cambios nuevos en archivos, pero existen commits pendientes por enviar.")
+
+    if sync_counts:
+        behind_count, ahead_count = sync_counts
+        print(f"Remoto pendiente de integrar: {behind_count}")
+        print(f"Commits locales pendientes de enviar: {ahead_count}")
+
     print(f"Rama destino: {branch}\n")
 
     try:
-        run_git_command(repo_dir, "status")
-        run_git_command(repo_dir, "add", ".")
-        commit_result = run_git_command(repo_dir, "commit", "-m", commit_message, check=False)
-        if commit_result.returncode != 0:
-            commit_out = f"{commit_result.stdout}\n{commit_result.stderr}".lower()
-            if "nothing to commit" not in commit_out and "no changes added" not in commit_out:
-                if commit_result.stdout:
-                    print(commit_result.stdout.strip())
-                if commit_result.stderr:
-                    print(commit_result.stderr.strip())
-                return commit_result.returncode or 1
-            print("No hubo cambios nuevos para commit despues de sincronizar archivos.")
+        if entries:
+            run_git_command(repo_dir, "add", ".")
+            if has_staged_changes(repo_dir):
+                run_git_command(repo_dir, "commit", "-m", commit_message)
 
-        push_result = push_changes(repo_dir, branch)
-        if push_result.stdout:
-            print(push_result.stdout.strip())
-        if push_result.stderr:
-            print(push_result.stderr.strip())
+        push_with_rebase_retry(repo_dir, branch)
     except subprocess.CalledProcessError as exc:
-        if exc.stdout:
-            print(exc.stdout.strip())
-        if exc.stderr:
-            print(exc.stderr.strip())
-        print("Fallo git push. Se intentara respaldo por GitHub API para archivos clave.")
-        try:
-            push_files_via_github_api(repo_dir, branch, commit_message)
-        except RuntimeError as fallback_exc:
-            print(str(fallback_exc))
-            return exc.returncode or 1
-        print("Respaldo por GitHub API completado.")
-        return 0
-    except RuntimeError as exc:
-        print(str(exc))
-        return 1
+        print_git_failure(exc)
+        return exc.returncode or 1
 
     print("Cambios guardados y enviados correctamente.")
     return 0
