@@ -12,7 +12,8 @@ if sys.stdout.encoding != 'utf-8':
 # CONFIGURACIÓN DE RUTAS (¡AJUSTA ESTO!)
 # =============================================
 # SCRIPT_DIR = r"C:\Users\Lpz_p\Desktop\Mi Proyecto Gib\Catalogo"
-SCRIPT_DIR = r"C:\Users\Admin\Desktop\Proyecto\Catalogo"
+# Usa la carpeta actual del script para evitar ajustes manuales de ruta.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Crear carpetas si no existen
 DATOS_DIR = os.path.join(SCRIPT_DIR, "datos")
 STYLE_DIR = os.path.join(SCRIPT_DIR, "style")
@@ -56,25 +57,216 @@ except Exception as e:
 # =============================================
 # 2. DEFINIR CSS
 # =============================================
-css_content = """:root {
-  --primary-color: #6366f1;
-  --secondary-color: #25D366;
-  --bg-light: #f8f9fa;
-  --bg-dark: #1a1a2e;
-  --card-light: rgba(255, 255, 255, 0.95);
-  --card-dark: rgba(30, 41, 59, 0.8);
+css_content = """@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700&family=Manrope:wght@400;500;700;800&display=swap');
+
+:root {
+  --primary-color: #ff5a36;
+  --secondary-color: #00b894;
+  --highlight-color: #f7c948;
+  --bg-light: #f6f8ff;
+  --bg-dark: #0f172a;
+  --card-light: rgba(255, 255, 255, 0.92);
+  --card-dark: rgba(15, 23, 42, 0.86);
+  --title-font: 'Orbitron', sans-serif;
+  --body-font: 'Manrope', sans-serif;
 }
 
-body { 
-  background-color: var(--bg-light);
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 90, 54, 0.12), transparent 35%),
+    radial-gradient(circle at 90% 20%, rgba(0, 184, 148, 0.12), transparent 38%),
+    var(--bg-light);
   padding-top: 20px;
   transition: background-color 0.3s ease, color 0.3s ease;
-  color: #333;
+  color: #1f2937;
+  font-family: var(--body-font);
 }
 
 body.dark-mode {
-  background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1419 100%);
-  color: #e0e0e0;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(255, 90, 54, 0.2), transparent 35%),
+    radial-gradient(circle at 85% 20%, rgba(0, 184, 148, 0.2), transparent 38%),
+    linear-gradient(135deg, var(--bg-dark) 0%, #020617 100%);
+  color: #e2e8f0;
+}
+
+.hero-panel {
+  position: relative;
+  margin-bottom: 18px;
+  padding: 28px 24px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(255, 90, 54, 0.12), rgba(0, 184, 148, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 20px 35px rgba(0, 0, 0, 0.07);
+  overflow: hidden;
+}
+
+.hero-panel::before {
+  content: '';
+  position: absolute;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+  top: -110px;
+  right: -50px;
+}
+
+body.dark-mode .hero-panel {
+  background: linear-gradient(145deg, rgba(255, 90, 54, 0.2), rgba(0, 184, 148, 0.18));
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.hero-kicker {
+  font-size: 0.78rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: #fb5607;
+  margin-bottom: 10px;
+}
+
+body.dark-mode .hero-kicker {
+  color: #ffd166;
+}
+
+#hiddenTrigger.hero-title {
+  font-family: var(--title-font);
+  font-size: clamp(1.7rem, 4vw, 2.8rem);
+  line-height: 1.15;
+  margin: 0;
+  user-select: none;
+  cursor: default;
+  text-shadow: 0 10px 22px rgba(255, 90, 54, 0.2);
+  color: #0f172a;
+}
+
+body.dark-mode #hiddenTrigger.hero-title {
+  color: #f8fafc;
+  text-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
+}
+
+#hiddenTrigger.hero-title:hover {
+  transform: translateY(-1px);
+}
+
+.hero-subtitle {
+  margin: 12px 0 0;
+  max-width: 820px;
+  color: #334155;
+  font-weight: 500;
+}
+
+body.dark-mode .hero-subtitle {
+  color: #cbd5e1;
+}
+
+.stats-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(140px, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.stat-pill {
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  padding: 12px 14px;
+}
+
+body.dark-mode .stat-pill {
+  background: rgba(15, 23, 42, 0.68);
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.78rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+}
+
+body.dark-mode .stat-label {
+  color: #94a3b8;
+}
+
+.stat-value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+body.dark-mode .stat-value {
+  color: #f8fafc;
+}
+
+.catalog-controls {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 20px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+body.dark-mode .catalog-controls {
+  background: rgba(15, 23, 42, 0.74);
+  border-color: rgba(148, 163, 184, 0.18);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.filter-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-grid .form-control,
+.filter-grid .form-select,
+.filter-grid .btn {
+  min-height: 46px;
+  border-radius: 12px;
+}
+
+#filtro {
+  flex: 1 1 320px;
+}
+
+#filtroCategoria,
+#ordenar {
+  flex: 1 1 210px;
+}
+
+#clearFilters {
+  border: 0;
+  background: linear-gradient(140deg, var(--primary-color), #ff8f3f);
+  color: #fff;
+  font-weight: 700;
+  padding: 0 20px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+#clearFilters:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 18px rgba(255, 90, 54, 0.28);
+}
+
+.active-filter-note {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+body.dark-mode .active-filter-note {
+  color: #cbd5e1;
 }
 
 .theme-toggle {
@@ -82,7 +274,7 @@ body.dark-mode {
   top: 20px;
   right: 20px;
   background: var(--card-light);
-  border: 2px solid #e0e0e0;
+  border: 2px solid #e2e8f0;
   border-radius: 50px;
   padding: 8px 16px;
   cursor: pointer;
@@ -94,21 +286,21 @@ body.dark-mode {
 
 body.dark-mode .theme-toggle {
   background: var(--card-dark);
-  border-color: #444;
+  border-color: rgba(148, 163, 184, 0.45);
   color: #ffd700;
 }
 
 .theme-toggle:hover {
-  transform: scale(1.1);
+  transform: scale(1.08);
   box-shadow: 0 6px 16px rgba(0,0,0,0.15);
 }
 
 .favorites-toggle {
   position: fixed;
-  top: 70px; /* debajo del toggle de tema */
-  right: 20px; /* alinear con el toggle */
-  background: #ffc107;
-  border: 2px solid #ff9800;
+  top: 70px;
+  right: 20px;
+  background: #f4b400;
+  border: 2px solid #d97706;
   border-radius: 50px;
   padding: 8px 16px;
   cursor: pointer;
@@ -116,19 +308,18 @@ body.dark-mode .theme-toggle {
   transition: all 0.3s ease;
   z-index: 1000;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  font-weight: 600;
-  color: #000;
+  font-weight: 700;
+  color: #111827;
 }
 
 body.dark-mode .favorites-toggle {
-  background: #ffb700;
-  border-color: #ff8c00;
+  background: #ffd166;
+  border-color: #f59e0b;
 }
 
 .favorites-toggle:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4);
-  background: #ffb300;
+  transform: scale(1.06);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.45);
 }
 
 .card {
@@ -144,41 +335,17 @@ body.dark-mode .favorites-toggle {
 
 body.dark-mode .card {
   background: var(--card-dark);
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-/* Dark mode: mejorar contraste de texto en las tarjetas */
-body.dark-mode .card-body .card-title,
-body.dark-mode .card-body .nombre,
-body.dark-mode .card-body .descripcion,
-body.dark-mode .card-body .text-decoration-line-through,
-body.dark-mode .card-body .small {
-  color: #ffffff !important;
-}
-
-/* Precio con descuento: verde más brillante en modo oscuro para mayor visibilidad */
-body.dark-mode .card-body .text-success,
-body.dark-mode .precio {
-  color: #4ade80 !important; /* verde brillante */
-}
-
-/* Footer de la tarjeta en modo oscuro menos brillante */
-body.dark-mode .card-footer {
-  background: rgba(255,255,255,0.02);
-}
-
-body.dark-mode .card-footer.bg-white {
-  background: rgba(255,255,255,0.02) !important;
+  border-color: rgba(148, 163, 184, 0.15);
 }
 
 .card:hover {
-  transform: translateY(-12px) scale(1.02);
-  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.2);
-  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-10px) scale(1.012);
+  box-shadow: 0 20px 40px rgba(255, 90, 54, 0.2);
+  border-color: rgba(255, 90, 54, 0.3);
 }
 
 body.dark-mode .card:hover {
-  box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 20px 40px rgba(255, 90, 54, 0.28);
 }
 
 .card-img-top {
@@ -188,29 +355,47 @@ body.dark-mode .card:hover {
   height: 250px;
   padding: 15px;
   transition: transform 0.3s ease, filter 0.3s ease;
-  background: linear-gradient(135deg, #f0f9ff 0%, #f3e8ff 100%);
+  background: linear-gradient(135deg, #fff1eb 0%, #d3f5ee 100%);
 }
 
 body.dark-mode .card-img-top {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
 }
 
 .card-img-top:hover {
-  transform: scale(1.05);
-  filter: brightness(1.1);
+  transform: scale(1.03);
+  filter: brightness(1.08);
+}
+
+body.dark-mode .card-body .card-title,
+body.dark-mode .card-body .nombre,
+body.dark-mode .card-body .descripcion,
+body.dark-mode .card-body .text-decoration-line-through,
+body.dark-mode .card-body .small {
+  color: #f8fafc !important;
+}
+
+body.dark-mode .card-body .text-success,
+body.dark-mode .precio {
+  color: #34d399 !important;
+}
+
+body.dark-mode .card-footer,
+body.dark-mode .card-footer.bg-white {
+  background: rgba(148, 163, 184, 0.03) !important;
 }
 
 .whatsapp-btn {
   background-color: #25D366 !important;
   border-color: #25D366 !important;
   transition: all 0.3s ease;
-  font-weight: 600;
+  font-weight: 700;
   border-radius: 12px;
 }
 
 .whatsapp-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(37, 211, 102, 0.4);
+  box-shadow: 0 8px 16px rgba(37, 211, 102, 0.35);
   background-color: #20ba5a !important;
 }
 
@@ -229,26 +414,16 @@ body.dark-mode .card-img-top {
 .btn-danger {
   background-color: #dc3545 !important;
   border-color: #dc3545 !important;
-  transform: scale(1.05);
+  transform: scale(1.03);
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
 }
 
 .favoriteBtn {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .text-decoration-line-through {
   text-decoration: line-through;
-}
-
-#hiddenTrigger {
-  cursor: default;
-  user-select: none;
-  transition: transform 0.3s ease;
-}
-
-#hiddenTrigger:hover {
-  transform: scale(1.05);
 }
 
 @keyframes fadeInUp {
@@ -271,55 +446,42 @@ body.dark-mode .card-img-top {
 .producto:nth-child(3) { animation-delay: 0.3s; }
 .producto:nth-child(n+4) { animation-delay: 0.4s; }
 
-h1 {
-  animation: fadeInUp 0.8s ease-out;
-  font-weight: 700;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-body.dark-mode h1 {
-  background: linear-gradient(135deg, #60a5fa, #34d399);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.form-control {
-  border-radius: 12px;
-  border: 2px solid #e0e0e0;
-  transition: all 0.3s ease;
-  font-size: 16px;
-}
-
+.form-control,
 .form-select {
   border-radius: 12px;
-  border: 2px solid #e0e0e0;
-  transition: all 0.3s ease;
+  border: 2px solid #dbe3ef;
+  transition: all 0.25s ease;
   font-size: 16px;
 }
 
-body.dark-mode .form-control {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #e0e0e0;
-}
-
+body.dark-mode .form-control,
 body.dark-mode .form-select {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #e0e0e0;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #e2e8f0;
 }
 
-.form-control:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-  transform: scale(1.02);
-}
-
+.form-control:focus,
 .form-select:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px rgba(255, 90, 54, 0.16);
+}
+
+.empty-state {
+  display: none;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 16px;
+  border: 1px dashed #cbd5e1;
+  padding: 28px;
+  margin-bottom: 20px;
+  color: #334155;
+}
+
+body.dark-mode .empty-state {
+  background: rgba(15, 23, 42, 0.65);
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #cbd5e1;
 }
 
 .back-to-top {
@@ -352,10 +514,9 @@ body.dark-mode .form-select {
 }
 
 body.dark-mode .back-to-top {
-  background: #60a5fa;
+  background: #fb5607;
 }
 
-/* Info de administrador (oculta por defecto, visible en modo admin) */
 .admin-info {
   border-top: 1px dashed #dee2e6;
   margin-top: 8px;
@@ -363,7 +524,7 @@ body.dark-mode .back-to-top {
 }
 
 body.dark-mode .admin-info {
-  border-top-color: rgba(255, 255, 255, 0.2);
+  border-top-color: rgba(148, 163, 184, 0.35);
 }
 
 .admin-info small {
@@ -371,13 +532,11 @@ body.dark-mode .admin-info {
 }
 
 body.dark-mode .admin-info small {
-  color: #adb5bd !important;
+  color: #94a3b8 !important;
 }
 
 body.dark-mode .admin-info a {
-  color: #60a5fa;
-}
-  background: #60a5fa;
+  color: #7dd3fc;
 }
 
 .pagination {
@@ -386,26 +545,27 @@ body.dark-mode .admin-info a {
 
 .page-link {
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
-  transition: all 0.3s ease;
-  color: var(--primary-color);
+  border: 1px solid #dbe3ef;
+  transition: all 0.25s ease;
+  color: #ea580c;
+  font-weight: 600;
 }
 
 body.dark-mode .page-link {
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #60a5fa;
+  border-color: rgba(148, 163, 184, 0.3);
+  color: #f8fafc;
   background-color: rgba(255, 255, 255, 0.05);
 }
 
 .page-link:hover {
-  background-color: var(--primary-color);
+  background-color: #ea580c;
   color: white;
   transform: translateY(-2px);
 }
 
 .page-item.active .page-link {
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
+  background-color: #ea580c;
+  border-color: #ea580c;
 }
 
 .modal-content {
@@ -429,42 +589,7 @@ body.dark-mode .modal-footer {
 body.dark-mode .list-group-item {
   background-color: rgba(255, 255, 255, 0.04);
   color: #e0e0e0;
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
-body.dark-mode .table {
-  color: #e0e0e0;
-}
-
-body.dark-mode .table thead th,
-body.dark-mode .table tbody td {
-  color: #e0e0e0;
-  background-color: transparent;
-}
-
-body.dark-mode .table thead th {
-  background-color: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-body.dark-mode .table > :not(caption) > * > * {
-  background-color: transparent;
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-body.dark-mode #modalListaBody .form-control {
-  background-color: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: #e0e0e0;
-}
-
-body.dark-mode .table-striped > tbody > tr:nth-of-type(odd) {
-  background-color: rgba(255, 255, 255, 0.03);
-}
-
-body.dark-mode .table-hover > tbody > tr:hover {
-  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(148, 163, 184, 0.2);
 }
 
 .modal-header {
@@ -473,7 +598,7 @@ body.dark-mode .table-hover > tbody > tr:hover {
 }
 
 body.dark-mode .modal-header {
-  border-bottom-color: rgba(255,255,255,0.1);
+  border-bottom-color: rgba(148, 163, 184, 0.2);
 }
 
 #modalImage {
@@ -487,12 +612,17 @@ body.dark-mode .modal-header {
   object-fit: contain;
 }
 
-html {
-  scroll-behavior: smooth;
+@media (max-width: 768px) {
+  .stats-strip {
+    grid-template-columns: 1fr;
+  }
 }
 
-/* Ajustes responsive: botones más pequeños en móviles */
 @media (max-width: 576px) {
+  .hero-panel {
+    padding: 22px 16px;
+  }
+
   .theme-toggle {
     top: 12px;
     right: 12px;
@@ -501,18 +631,18 @@ html {
   }
 
   .favorites-toggle {
-    top: 54px; /* ligeramente debajo del toggle reducido */
+    top: 54px;
     right: 12px;
     padding: 6px 10px;
     font-size: 14px;
     border-radius: 40px;
   }
 
-  .theme-toggle, .favorites-toggle {
+  .theme-toggle,
+  .favorites-toggle {
     box-shadow: 0 6px 12px rgba(0,0,0,0.12);
   }
 
-  /* Paginación más compacta en móviles */
   .pagination {
     flex-wrap: wrap;
     gap: 4px;
@@ -544,6 +674,7 @@ js_content = """// Inicializar Dark Mode al cargar
 document.addEventListener('DOMContentLoaded', function() {
   initDarkMode();
   initFavoritos();
+  updateStats(allItems);
 });
 
 function initDarkMode() {
@@ -573,12 +704,11 @@ function toggleDarkMode() {
 function initFavoritos() {
   const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
   actualizarContadorFavoritos(favoritos.length);
-  
-  // Actualizar estado visual de todos los botones
+
   document.querySelectorAll('.favoriteBtn').forEach((btn) => {
     const nombre = btn.getAttribute('data-nombre');
     const esFavorito = favoritos.some((f) => f.nombre === nombre);
-    
+
     if (esFavorito) {
       btn.classList.remove('btn-outline-danger');
       btn.classList.add('btn-danger');
@@ -589,7 +719,6 @@ function initFavoritos() {
   });
 }
 
-// Event delegation para favoritos (evita múltiples listeners)
 document.addEventListener('click', function(e) {
   if (e.target.closest('.favoriteBtn')) {
     e.preventDefault();
@@ -597,22 +726,20 @@ document.addEventListener('click', function(e) {
     const nombre = btn.getAttribute('data-nombre');
     const precio = btn.getAttribute('data-precio');
     const url = btn.getAttribute('data-url');
-    
+
     let favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
     const existe = favoritos.some((f) => f.nombre === nombre);
-    
+
     if (existe) {
-      // Remover de favoritos
       favoritos = favoritos.filter((f) => f.nombre !== nombre);
       btn.classList.remove('btn-danger');
       btn.classList.add('btn-outline-danger');
     } else {
-      // Agregar a favoritos
       favoritos.push({ nombre, precio, url });
       btn.classList.remove('btn-outline-danger');
       btn.classList.add('btn-danger');
     }
-    
+
     localStorage.setItem('favoritos', JSON.stringify(favoritos));
     actualizarContadorFavoritos(favoritos.length);
   }
@@ -628,9 +755,9 @@ function actualizarContadorFavoritos(cantidad) {
 function mostrarFavoritos() {
   const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
   const modalBody = document.getElementById('modalFavoritosBody');
-  
+
   if (favoritos.length === 0) {
-    modalBody.innerHTML = '<p class="text-center text-muted">No tienes productos favoritos aún.</p>';
+    modalBody.innerHTML = '<p class="text-center text-muted">No tienes productos favoritos aun.</p>';
   } else {
     let html = '<div class="list-group">';
     favoritos.forEach((fav, index) => {
@@ -652,11 +779,10 @@ function mostrarFavoritos() {
     html += '</div>';
     modalBody.innerHTML = html;
   }
-  
-  // Limpiar backdrops previos
+
   document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
   document.body.classList.remove('modal-open');
-  
+
   const modalElement = document.getElementById('favoritosModal');
   let modal = bootstrap.Modal.getInstance(modalElement);
   if (!modal) {
@@ -670,19 +796,14 @@ function eliminarFavorito(index) {
   favoritos.splice(index, 1);
   localStorage.setItem('favoritos', JSON.stringify(favoritos));
   actualizarContadorFavoritos(favoritos.length);
-  
-  // Actualizar botones de favoritos en la página
   initFavoritos();
-  
+
   const modalElement = document.getElementById('favoritosModal');
-  
+
   if (favoritos.length === 0) {
-    // Si no hay favoritos, cerrar el modal completamente
     const modal = bootstrap.Modal.getInstance(modalElement);
     if (modal) {
-      // Usar el evento hidden de Bootstrap para saber cuándo terminó de cerrar
       const closeHandler = () => {
-        // Limpiar backdrops y estilos después de que cierre
         document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
         document.body.classList.remove('modal-open');
         document.body.style.overflow = '';
@@ -693,48 +814,43 @@ function eliminarFavorito(index) {
       modal.hide();
     }
   } else {
-    // Si quedan favoritos, actualizar contenido del modal
     mostrarFavoritos();
   }
 }
 
 function enviarFavoritosWhatsApp() {
   const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
-  
+
   if (favoritos.length === 0) {
     alert('No tienes favoritos para enviar');
     return;
   }
-  
-  let mensaje = '¡Hola! Estoy interesado en los siguientes productos:%0A%0A';
-  
+
+  let mensaje = 'Hola. Estoy interesado en los siguientes productos:%0A%0A';
+
   favoritos.forEach((fav, index) => {
     mensaje += `${index + 1}. ${encodeURIComponent(fav.nombre)}%0APrecio: $${parseFloat(fav.precio).toFixed(2)}%0AImagen: ${encodeURIComponent(fav.url)}%0A%0A`;
   });
-  
-  mensaje += '¡Gracias por tu atención!';
-  
+
+  mensaje += 'Gracias por tu atencion.';
+
   const numeroWhatsApp = '526678191185';
   const urlWhatsApp = `https://wa.me/${numeroWhatsApp}?text=${mensaje}`;
-  
-  // Cerrar el modal
+
   const modalElement = document.getElementById('favoritosModal');
   const modal = bootstrap.Modal.getInstance(modalElement);
   if (modal) {
     modal.hide();
   }
-  
-  // Forzar eliminación del backdrop
+
   setTimeout(() => {
     document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
     document.body.classList.remove('modal-open');
   }, 100);
-  
-  // Abrir WhatsApp
+
   window.open(urlWhatsApp, '_blank');
 }
 
-// Variables para paginación, filtrado y orden
 const allItems = Array.from(document.querySelectorAll('.producto'));
 const originalOrder = new Map();
 allItems.forEach((el, idx) => originalOrder.set(el, idx));
@@ -744,6 +860,14 @@ let currentPage = 1;
 const sortSelect = document.getElementById('ordenar');
 let currentSort = sortSelect ? sortSelect.value : 'reciente';
 const productosContainer = document.getElementById('productos');
+const searchInput = document.getElementById('filtro');
+const categorySelect = document.getElementById('filtroCategoria');
+const clearFiltersBtn = document.getElementById('clearFilters');
+const totalProductsEl = document.getElementById('totalProducts');
+const visibleProductsEl = document.getElementById('visibleProducts');
+const activeCategoryEl = document.getElementById('activeCategory');
+const activeFilterNote = document.getElementById('activeFilterNote');
+const emptyState = document.getElementById('emptyState');
 
 function getItemPrice(el) {
   const raw = el.dataset.price || el.querySelector('.precio')?.innerText || '0';
@@ -769,23 +893,39 @@ function reorderContainer(items) {
   productosContainer.appendChild(fragment);
 }
 
-// Renderiza página principal
 function renderPage(items, page) {
   allItems.forEach(el => el.style.display = 'none');
   const start = (page - 1) * pageSize;
   items.slice(start, start + pageSize).forEach(el => el.style.display = 'block');
 }
 
-// Renderiza paginación principal
 function renderPagination(items) {
   const totalPages = Math.ceil(items.length / pageSize) || 1;
   const container = document.getElementById('paginacion');
+  if (!container) return;
   container.innerHTML = '';
+  const nav = container.closest('nav');
+  if (nav) {
+    nav.style.display = items.length > pageSize ? '' : 'none';
+  }
+
+  if (items.length === 0) return;
+
   const makeLi = (label, page, disabled=false, active=false) => {
     const li = document.createElement('li');
-    li.className = `page-item${disabled?' disabled':''}${active?' active':''}`;
-    const a = document.createElement('a'); a.className = 'page-link'; a.href = '#'; a.innerText = label;
-    a.addEventListener('click', e => { e.preventDefault(); if(!disabled){ currentPage = page; update(); scrollToTop(); }});
+    li.className = `page-item${disabled ? ' disabled' : ''}${active ? ' active' : ''}`;
+    const a = document.createElement('a');
+    a.className = 'page-link';
+    a.href = '#';
+    a.innerText = label;
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      if (!disabled) {
+        currentPage = page;
+        update();
+        scrollToTop();
+      }
+    });
     li.appendChild(a);
     return li;
   };
@@ -804,7 +944,9 @@ function renderPagination(items) {
   if (startPage > 1) {
     container.appendChild(makeLi('1', 1, false, currentPage === 1));
     if (startPage > 2) {
-      const dots = document.createElement('li'); dots.className = 'page-item disabled'; dots.innerHTML = '<span class="page-link">…</span>';
+      const dots = document.createElement('li');
+      dots.className = 'page-item disabled';
+      dots.innerHTML = '<span class="page-link">...</span>';
       container.appendChild(dots);
     }
   }
@@ -815,7 +957,9 @@ function renderPagination(items) {
 
   if (endPage < totalPages) {
     if (endPage < totalPages - 1) {
-      const dots = document.createElement('li'); dots.className = 'page-item disabled'; dots.innerHTML = '<span class="page-link">…</span>';
+      const dots = document.createElement('li');
+      dots.className = 'page-item disabled';
+      dots.innerHTML = '<span class="page-link">...</span>';
       container.appendChild(dots);
     }
     container.appendChild(makeLi(totalPages, totalPages, false, currentPage === totalPages));
@@ -824,12 +968,10 @@ function renderPagination(items) {
   container.appendChild(makeLi('»', currentPage + 1, currentPage === totalPages));
 }
 
-// Scroll suave al top
 function scrollToTop() {
   document.getElementById('top').scrollIntoView({ behavior: 'smooth' });
 }
 
-// Botón flotante "Ir arriba"
 const backToTopBtn = document.getElementById('backToTop');
 if (backToTopBtn) {
   window.addEventListener('scroll', () => {
@@ -845,22 +987,40 @@ if (backToTopBtn) {
   });
 }
 
-// Actualiza la lista principal
+function updateStats(items) {
+  if (totalProductsEl) totalProductsEl.textContent = allItems.length;
+  if (visibleProductsEl) visibleProductsEl.textContent = items.length;
+
+  const activeCategory = categorySelect?.value ? categorySelect.value : 'Todas';
+  if (activeCategoryEl) activeCategoryEl.textContent = activeCategory;
+
+  const query = (searchInput?.value || '').trim();
+  if (activeFilterNote) {
+    const textTag = query ? `"${query}"` : 'sin texto';
+    activeFilterNote.textContent = `Mostrando ${items.length} de ${allItems.length} productos | Categoria: ${activeCategory} | Busqueda: ${textTag}`;
+  }
+}
+
 function update() {
   const sorted = applySort(filtered);
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  if (currentPage > totalPages) {
+    currentPage = totalPages;
+  }
+
   reorderContainer(sorted);
   renderPage(sorted, currentPage);
   renderPagination(sorted);
+  updateStats(sorted);
+
+  if (emptyState) {
+    emptyState.style.display = sorted.length === 0 ? 'block' : 'none';
+  }
 }
 
-// Remueve acentos para filtro insensible
 function removeAccents(str) {
-  return str.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
+  return str.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '');
 }
-
-// Evento filtro principal (texto + categoría)
-const searchInput = document.getElementById('filtro');
-const categorySelect = document.getElementById('filtroCategoria');
 
 function applyFilters() {
   const term = removeAccents((searchInput?.value || '').toLowerCase());
@@ -902,10 +1062,23 @@ if (sortSelect) {
   });
 }
 
-// Inicializar lista principal
+if (clearFiltersBtn) {
+  clearFiltersBtn.addEventListener('click', () => {
+    if (searchInput) searchInput.value = '';
+    if (categorySelect) categorySelect.value = '';
+    if (sortSelect) {
+      sortSelect.value = 'reciente';
+      currentSort = 'reciente';
+    }
+    filtered = [...allItems];
+    currentPage = 1;
+    update();
+    scrollToTop();
+  });
+}
+
 update();
 
-// Modal imagen grande
 document.querySelectorAll('.card-img-top').forEach(img => {
   img.addEventListener('click', () => {
     const modalImage = document.getElementById('modalImage');
@@ -914,43 +1087,42 @@ document.querySelectorAll('.card-img-top').forEach(img => {
   });
 });
 
-// BOTÓN OCULTO: Detectar 5 clics en 🎁 para pedir contraseña y mostrar lista
 const hiddenTrigger = document.getElementById('hiddenTrigger');
 let clickCount = 0;
 let clickTimeout;
 
-hiddenTrigger.addEventListener('click', () => {
-  clickCount++;
-  clearTimeout(clickTimeout);
-  clickTimeout = setTimeout(() => {
-    clickCount = 0;
-  }, 2000); // Resetea contador después de 2 segundos sin clics
+if (hiddenTrigger) {
+  hiddenTrigger.addEventListener('click', () => {
+    clickCount++;
+    clearTimeout(clickTimeout);
+    clickTimeout = setTimeout(() => {
+      clickCount = 0;
+    }, 2000);
 
-  if (clickCount === 5) {
-    clickCount = 0;
-    const password = prompt("Ingrese la contraseña:");
-    if(password === "Zombie") {
-      toggleAdminMode(true);
-    } else {
-      alert("Contraseña incorrecta");
+    if (clickCount === 5) {
+      clickCount = 0;
+      const password = prompt('Ingrese la contrasena:');
+      if (password === 'Zombie') {
+        toggleAdminMode(true);
+      } else {
+        alert('Contrasena incorrecta');
+      }
     }
-  }
-});
+  });
+}
 
-// Activa/desactiva la visibilidad de la info de admin en las cards
 function toggleAdminMode(active) {
   document.querySelectorAll('.admin-info').forEach(el => {
     el.style.display = active ? 'block' : 'none';
   });
 }
 
-// Mostrar modal con 1% de probabilidad al cargar la página
 window.addEventListener('DOMContentLoaded', () => {
-  const probabilidad = 0.001; // 0.1%
+  const probabilidad = 0.001;
   if (Math.random() < probabilidad) {
     setTimeout(() => {
       new bootstrap.Modal(document.getElementById('descuentoModal')).show();
-    }, 2000); // Mostrar tras 2 segundos
+    }, 2000);
   }
 });
 """
@@ -963,7 +1135,7 @@ html_template = """<!DOCTYPE html>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Catálogo de Productos</title>
+  <title>Catalogo de Productos | Ofertas</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="style/style.css">
 </head>
@@ -977,26 +1149,50 @@ html_template = """<!DOCTYPE html>
   </button>
 
   <div class="container" id="top">
-    <!-- Título con botón oculto 🎁 -->
-    <h1 class="text-center mb-4 text-primary" id="hiddenTrigger" title="Haz clic 5 veces rápido aquí">
-      🎁 Catálogo de Ofertas 🔥
-    </h1>
+    <section class="hero-panel">
+      <p class="hero-kicker">Seleccion premium</p>
+      <!-- Título con botón oculto 🎁 -->
+      <h1 class="hero-title" id="hiddenTrigger" title="Haz clic 5 veces rapido aqui">
+        Catalogo de Ofertas Imbatibles
+      </h1>
+      <p class="hero-subtitle">
+        Descubre productos seleccionados con precios competitivos, descuentos reales y contacto rapido por WhatsApp.
+      </p>
 
-    <!-- Buscador principal -->
-    <div class="mb-4 text-center d-flex justify-content-center gap-2 flex-wrap">
-      <input id="filtro" type="text" class="form-control w-50" placeholder="🔍 Buscar productos..." />
-      <select id="filtroCategoria" class="form-select w-auto">
-        <option value="" selected>Todas las categorías</option>
-        {% for cat in categorias %}
-        <option value="{{ cat }}">{{ cat }}</option>
-        {% endfor %}
-      </select>
-      <select id="ordenar" class="form-select w-auto">
-        <option value="reciente" selected>Más recientes</option>
-        <option value="precio-asc">Precio: menor a mayor</option>
-        <option value="precio-desc">Precio: mayor a menor</option>
-      </select>
-    </div>
+      <div class="stats-strip" aria-label="Estadisticas del catalogo">
+        <div class="stat-pill">
+          <span class="stat-label">Total productos</span>
+          <span class="stat-value" id="totalProducts">0</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Mostrando</span>
+          <span class="stat-value" id="visibleProducts">0</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-label">Categoria activa</span>
+          <span class="stat-value" id="activeCategory">Todas</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="catalog-controls" aria-label="Filtros y orden">
+      <div class="filter-grid">
+        <input id="filtro" type="text" class="form-control" placeholder="Buscar por nombre, descripcion o precio" />
+        <select id="filtroCategoria" class="form-select">
+          <option value="" selected>Todas las categorias</option>
+          {% for cat in categorias %}
+          <option value="{{ cat }}">{{ cat }}</option>
+          {% endfor %}
+        </select>
+        <select id="ordenar" class="form-select">
+          <option value="reciente" selected>Mas recientes</option>
+          <option value="precio-asc">Precio: menor a mayor</option>
+          <option value="precio-desc">Precio: mayor a menor</option>
+        </select>
+        <button id="clearFilters" type="button" class="btn">Limpiar</button>
+      </div>
+      <div class="active-filter-note" id="activeFilterNote">Mostrando todos los productos</div>
+    </section>
 
     <!-- Productos -->
     <div class="row" id="productos">
@@ -1012,6 +1208,11 @@ html_template = """<!DOCTYPE html>
           <img src="{{ img.strip() }}" class="d-block w-100 card-img-top" alt="{{ producto.Nombre }}" loading="lazy" onerror="this.src='{{ producto.LinkCompra|urlencode }}'">
         </div>
       {% endfor %}
+    </div>
+
+    <div id="emptyState" class="empty-state">
+      <h5 class="mb-2">No encontramos productos con esos filtros</h5>
+      <p class="mb-0">Prueba quitando categoria o cambiando el texto de busqueda.</p>
     </div>
     <button class="carousel-control-prev" type="button" data-bs-target="#carousel-{{ loop.index }}" data-bs-slide="prev">
       <span class="carousel-control-prev-icon" aria-hidden="true"></span>

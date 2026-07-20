@@ -3,13 +3,11 @@ setlocal
 
 cd /d "%~dp0"
 
-set "PYTHON_EXE="
-if exist ".venv\Scripts\python.exe" set "PYTHON_EXE=.venv\Scripts\python.exe"
+set "PYTHONDONTWRITEBYTECODE=1"
 
-if not defined PYTHON_EXE (
-    where py >nul 2>nul
-    if not errorlevel 1 set "PYTHON_EXE=py"
-)
+set "PYTHON_EXE="
+where py >nul 2>nul
+if not errorlevel 1 set "PYTHON_EXE=py"
 
 if not defined PYTHON_EXE (
     where python >nul 2>nul
@@ -45,7 +43,7 @@ goto menu
 
 :generar
 echo.
-"%PYTHON_EXE%" "GenerarCatalogo.py"
+"%PYTHON_EXE%" -B "GenerarCatalogo.py"
 set "EXIT_CODE=%ERRORLEVEL%"
 if not "%EXIT_CODE%"=="0" (
     echo.
@@ -61,7 +59,7 @@ goto menu
 
 :descargar
 echo.
-"%PYTHON_EXE%" "DescargarImagenes.py"
+"%PYTHON_EXE%" -B "DescargarImagenes.py"
 set "EXIT_CODE=%ERRORLEVEL%"
 if not "%EXIT_CODE%"=="0" (
     echo.
@@ -77,7 +75,7 @@ goto menu
 
 :desplegar
 echo.
-"%PYTHON_EXE%" "GuardarYDesplegar.py"
+"%PYTHON_EXE%" -B "GuardarYDesplegar.py"
 set "EXIT_CODE=%ERRORLEVEL%"
 if not "%EXIT_CODE%"=="0" (
     echo.
