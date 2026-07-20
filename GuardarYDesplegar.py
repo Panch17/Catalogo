@@ -28,6 +28,29 @@ NON_FAST_FORWARD_MARKERS = (
     "failed to push some refs",
 )
 
+REPO_OPERATION_MESSAGES = {
+    "rebase-merge": (
+        "Hay un rebase en curso.",
+        "Termina con 'git rebase --continue' o cancela con 'git rebase --abort' antes de usar esta opcion.",
+    ),
+    "rebase-apply": (
+        "Hay un rebase en curso.",
+        "Termina con 'git rebase --continue' o cancela con 'git rebase --abort' antes de usar esta opcion.",
+    ),
+    "MERGE_HEAD": (
+        "Hay un merge en curso.",
+        "Resuelve los conflictos y ejecuta 'git commit', o cancela con 'git merge --abort' antes de usar esta opcion.",
+    ),
+    "CHERRY_PICK_HEAD": (
+        "Hay un cherry-pick en curso.",
+        "Termina con 'git cherry-pick --continue' o cancela con 'git cherry-pick --abort' antes de usar esta opcion.",
+    ),
+    "REVERT_HEAD": (
+        "Hay un revert en curso.",
+        "Termina con 'git revert --continue' o cancela con 'git revert --abort' antes de usar esta opcion.",
+    ),
+}
+
 
 def run_git_command(repo_dir: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
@@ -304,6 +327,19 @@ def push_changes(repo_dir: Path, branch: str) -> subprocess.CompletedProcess[str
     return run_git_command(repo_dir, "push", auth_remote, f"HEAD:{branch}")
 
 
+def get_repo_operation_state(repo_dir: Path) -> tuple[str, str] | None:
+    git_dir_result = run_git_command(repo_dir, "rev-parse", "--git-dir", check=False)
+    if git_dir_result.returncode != 0:
+        return None
+
+    git_dir = (repo_dir / git_dir_result.stdout.strip()).resolve()
+    for marker, messages in REPO_OPERATION_MESSAGES.items():
+        if (git_dir / marker).exists():
+            return messages
+
+    return None
+
+
 def get_upstream_branch(repo_dir: Path) -> str:
     result = run_git_command(
         repo_dir,
@@ -396,6 +432,13 @@ def main() -> int:
 
         print("Cambios subidos correctamente por GitHub API.")
         return 0
+
+    repo_operation_state = get_repo_operation_state(repo_dir)
+    if repo_operation_state:
+        headline, guidance = repo_operation_state
+        print(headline)
+        print(guidance)
+        return 1
 
     entries = get_changed_entries(repo_dir)
     branch = get_current_branch(repo_dir)
