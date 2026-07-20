@@ -322,6 +322,12 @@ body.dark-mode .favorites-toggle {
   box-shadow: 0 6px 16px rgba(245, 158, 11, 0.45);
 }
 
+.ahorro-badge {
+  background: linear-gradient(135deg, #fb5607, #f59e0b);
+  color: #fff;
+  font-weight: 700;
+}
+
 .card {
   transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
   border: none;
@@ -1153,10 +1159,10 @@ html_template = """<!DOCTYPE html>
       <p class="hero-kicker">Seleccion premium</p>
       <!-- Título con botón oculto 🎁 -->
       <h1 class="hero-title" id="hiddenTrigger" title="Haz clic 5 veces rapido aqui">
-        Catalogo de Ofertas Imbatibles
+        Catalogo de Ofertas
       </h1>
       <p class="hero-subtitle">
-        Descubre productos seleccionados con precios competitivos, descuentos reales y contacto rapido por WhatsApp.
+        Aquí encuentras productos chidos, bien escogidos, con precios que compiten y descuentos que no son inventados. Si topas el mismo artículo más barato en otro lado, avísame y vemos cómo te mejoro el precio —sin excusas, sin peros, solo con ganas de que te quedes conmigo y vuelvas por más. Mejor te los descuento y ya, contentos los dos y con ganas de vender más...
       </p>
 
       <div class="stats-strip" aria-label="Estadisticas del catalogo">
@@ -1230,8 +1236,9 @@ html_template = """<!DOCTYPE html>
             <h5 class="card-title nombre">{{ producto.Nombre }}</h5>
             <p class="card-text text-muted descripcion">{{ producto.Descripción }}</p>
             {% if producto.PrecioRebaja is not none and producto.PrecioRebaja > 0 %}
-              {% set desc = ((producto.Precio - producto.PrecioRebaja)/producto.Precio*100)|round(0,'floor') %}
-              <p class="text-success fw-bold precio">${{ "%.2f"|format(producto.PrecioRebaja) }} <span class="badge bg-danger ms-2">-{{ desc }}%</span></p>
+              {% set ahorro = producto.Precio - producto.PrecioRebaja %}
+              {% set desc = (ahorro / producto.Precio * 100)|round(1) %}
+              <p class="text-success fw-bold precio">${{ "%.2f"|format(producto.PrecioRebaja) }} <span class="badge bg-danger ms-2">-{{ "%.1f"|format(desc) }}%</span> <span class="badge ahorro-badge ms-2">Ahorra ${{ "{:,.2f}".format(ahorro).rstrip('0').rstrip('.') }}</span></p>
               <p class="text-muted text-decoration-line-through small mb-0">${{ "%.2f"|format(producto.Precio) }}</p>
             {% else %}
               <p class="text-success fw-bold precio">${{ "%.2f"|format(producto.Precio) }}</p>

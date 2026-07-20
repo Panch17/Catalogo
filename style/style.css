@@ -263,6 +263,12 @@ body.dark-mode .favorites-toggle {
   box-shadow: 0 6px 16px rgba(245, 158, 11, 0.45);
 }
 
+.ahorro-badge {
+  background: linear-gradient(135deg, #fb5607, #f59e0b);
+  color: #fff;
+  font-weight: 700;
+}
+
 .card {
   transition: all 0.4s cubic-bezier(0.23, 1, 0.320, 1);
   border: none;
