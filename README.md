@@ -45,6 +45,14 @@ Generador de catálogo con favoritos, modo noche y envío por WhatsApp.
 2. Abre **❤️ Favoritos**.
 3. Pulsa **"📱 Enviar por WhatsApp"**.
 
+### Ver fotos y video
+
+- Agrega una columna **Fotos** en `datos/productos.xlsx`.
+- Si tiene varias fotos, sepáralas con `;`.
+- Agrega una columna **Videos** con la ruta o URL del video.
+- Si el campo tiene contenido, el catálogo muestra el botón correspondiente y abre un modal de vista previa.
+- Para video local, guarda los archivos en `VIDEOS/` y usa rutas como `VIDEOS/mi_video.mp4`.
+
 ### Cambiar Modo Noche
 
 1. Haz clic en **🌙**.

@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 from jinja2 import Template
 import os
@@ -29,6 +30,20 @@ OUTPUT_HTML = os.path.join(SCRIPT_DIR, "index.html")
 OUTPUT_CSS = os.path.join(STYLE_DIR, "style.css")
 OUTPUT_JS = os.path.join(JS_DIR, "catalog.js")
 
+
+def limpiar_texto(valor):
+    if pd.isna(valor):
+        return ""
+    texto = str(valor).strip()
+    return "" if texto.lower() == "nan" else texto
+
+
+def dividir_medios(valor):
+    texto = limpiar_texto(valor)
+    if not texto:
+        return []
+    return [parte.strip() for parte in texto.split(";") if parte.strip()]
+
 # =============================================
 # 1. LEER EL ARCHIVO EXCEL/CSV Y LIMPIAR DATOS
 # =============================================
@@ -37,15 +52,31 @@ try:
     df = df.sample(frac=1).reset_index(drop=True)  # Mezcla aleatoriamente los productos
     df['Precio'] = df['Precio'].replace(r'[\$,]', '', regex=True).astype(float)
     df['PrecioRebaja'] = pd.to_numeric(df.get('PrecioRebaja'), errors='coerce')
-    if 'ImagenURL' in df.columns:
-      df['ImagenURL'] = df['ImagenURL'].fillna('').astype(str).replace('nan', '')
-    if 'LinkCompra' in df.columns:
-      df['LinkCompra'] = df['LinkCompra'].fillna('').astype(str).replace('nan', '')
+    if 'ImagenURL' not in df.columns:
+        df['ImagenURL'] = ''
+    else:
+        df['ImagenURL'] = df['ImagenURL'].fillna('').astype(str).replace('nan', '')
+    if 'Fotos' not in df.columns:
+      df['Fotos'] = ''
+    else:
+      df['Fotos'] = df['Fotos'].fillna('').astype(str).replace('nan', '')
+    if 'Videos' not in df.columns:
+      df['Videos'] = ''
+    else:
+      df['Videos'] = df['Videos'].fillna('').astype(str).replace('nan', '')
+    if 'LinkCompra' not in df.columns:
+        df['LinkCompra'] = ''
+    else:
+        df['LinkCompra'] = df['LinkCompra'].fillna('').astype(str).replace('nan', '')
     if 'Categoria' in df.columns:
         df['Categoria'] = df['Categoria'].fillna('Otros').astype(str)
         df.loc[df['Categoria'].str.strip().str.lower() == 'seguridad', 'Categoria'] = 'Otros'
     else:
         df['Categoria'] = 'Otros'
+    df['FotosLista'] = df['Fotos'].apply(dividir_medios)
+    df['VideosLista'] = df['Videos'].apply(dividir_medios)
+    df['VideoURL'] = df['VideosLista'].apply(lambda items: items[0] if items else '')
+    df['FotosJS'] = df['FotosLista'].apply(lambda items: json.dumps(items, ensure_ascii=False))
     categorias = sorted(
         [c for c in df['Categoria'].dropna().unique().tolist() if str(c).strip() and str(c).strip().lower() != 'seguridad']
     )
@@ -618,6 +649,81 @@ body.dark-mode .modal-header {
   object-fit: contain;
 }
 
+.media-actions {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mediaBtn {
+  border-radius: 14px;
+  font-weight: 800;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease, color 0.25s ease;
+}
+
+.mediaBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+}
+
+.mediaBtn.images {
+  border-color: var(--secondary-color);
+  color: var(--secondary-color);
+}
+
+.mediaBtn.images:hover {
+  background-color: rgba(0, 184, 148, 0.08);
+}
+
+.mediaBtn.video {
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+}
+
+.mediaBtn.video:hover {
+  background-color: rgba(29, 78, 216, 0.08);
+}
+
+body.dark-mode .mediaBtn.images {
+  color: #5eead4;
+  border-color: #5eead4;
+}
+
+body.dark-mode .mediaBtn.video {
+  color: #93c5fd;
+  border-color: #93c5fd;
+}
+
+.media-modal-preview {
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), rgba(15, 23, 42, 0.02));
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.media-carousel .carousel-item img {
+  max-height: 68vh;
+  width: 100%;
+  object-fit: contain;
+  border-radius: 16px;
+}
+
+.media-video-player {
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 16px;
+  background: #000;
+}
+
+.media-empty {
+  text-align: center;
+  padding: 34px 16px;
+  color: #64748b;
+}
+
+body.dark-mode .media-empty {
+  color: #cbd5e1;
+}
+
 @media (max-width: 768px) {
   .stats-strip {
     grid-template-columns: 1fr;
@@ -707,6 +813,110 @@ function toggleDarkMode() {
   localStorage.setItem('darkMode', isDark);
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function abrirMediaModal(titulo, contenidoHtml) {
+  const modalTitle = document.getElementById('mediaModalTitle');
+  const modalBody = document.getElementById('mediaModalBody');
+  const modalElement = document.getElementById('mediaModal');
+
+  if (!modalTitle || !modalBody || !modalElement) {
+    return;
+  }
+
+  modalTitle.textContent = titulo || 'Vista previa';
+  modalBody.innerHTML = contenidoHtml;
+
+  let modal = bootstrap.Modal.getInstance(modalElement);
+  if (!modal) {
+    modal = new bootstrap.Modal(modalElement);
+  }
+  modal.show();
+}
+
+function abrirImagenesReales(titulo, imagenes) {
+  const lista = Array.isArray(imagenes) ? imagenes.filter(Boolean) : [];
+
+  if (lista.length === 0) {
+    abrirMediaModal(titulo, '<div class="media-empty"><p class="mb-0">No hay imágenes reales para mostrar.</p></div>');
+    return;
+  }
+
+  if (lista.length === 1) {
+    const imagen = escapeHtml(lista[0]);
+    const contenido = `
+      <div class="media-modal-preview">
+        <img src="${imagen}" class="img-fluid rounded-4 w-100" alt="${escapeHtml(titulo)}" loading="lazy" onerror="this.outerHTML='<div class=\'media-empty\'>No se pudo cargar la imagen.</div>'">
+      </div>
+    `;
+    abrirMediaModal(titulo, contenido);
+    return;
+  }
+
+  const items = lista
+    .map((imagen, index) => `
+      <div class="carousel-item ${index === 0 ? 'active' : ''}">
+        <img src="${escapeHtml(imagen)}" class="d-block w-100" alt="${escapeHtml(`${titulo} ${index + 1}`)}" loading="lazy" onerror="this.outerHTML='<div class=\'media-empty\'>No se pudo cargar la imagen.</div>'">
+      </div>
+    `)
+    .join('');
+
+  const indicadores = lista
+    .map((_, index) => `<button type="button" data-bs-target="#mediaCarousel" data-bs-slide-to="${index}" class="${index === 0 ? 'active' : ''}" aria-current="${index === 0 ? 'true' : 'false'}" aria-label="Imagen ${index + 1}"></button>`)
+    .join('');
+
+  const contenido = `
+    <div class="media-modal-preview">
+      <div id="mediaCarousel" class="carousel slide media-carousel" data-bs-ride="carousel" data-bs-touch="true">
+        <div class="carousel-indicators">
+          ${indicadores}
+        </div>
+        <div class="carousel-inner rounded-4 overflow-hidden">
+          ${items}
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#mediaCarousel" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Anterior</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#mediaCarousel" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Siguiente</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  abrirMediaModal(titulo, contenido);
+}
+
+function convertirVideoAiframe(url) {
+  const safeUrl = escapeHtml(url);
+  if (/youtu\\.be|youtube\\.com/i.test(url)) {
+    const videoIdMatch = url.match(/(?:v=|youtu\\.be\\/)([a-zA-Z0-9_-]{6,})/i);
+    const videoId = videoIdMatch ? videoIdMatch[1] : '';
+    if (videoId) {
+      return `<div class="ratio ratio-16x9 media-modal-preview"><iframe src="https://www.youtube.com/embed/${videoId}" title="Video del producto" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+    }
+  }
+  return `<div class="media-modal-preview"><video class="media-video-player" controls playsinline preload="metadata" src="${safeUrl}"></video></div>`;
+}
+
+function abrirVideoProducto(titulo, url) {
+  if (!url) {
+    abrirMediaModal(titulo, '<div class="media-empty"><p class="mb-0">No hay video disponible para este producto.</p></div>');
+    return;
+  }
+
+  abrirMediaModal(titulo, convertirVideoAiframe(url));
+}
+
 function initFavoritos() {
   const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
   actualizarContadorFavoritos(favoritos.length);
@@ -748,6 +958,32 @@ document.addEventListener('click', function(e) {
 
     localStorage.setItem('favoritos', JSON.stringify(favoritos));
     actualizarContadorFavoritos(favoritos.length);
+  }
+});
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.mediaBtn');
+  if (!btn) {
+    return;
+  }
+
+  e.preventDefault();
+  const mediaType = btn.getAttribute('data-media-type');
+  const title = btn.getAttribute('data-title') || 'Vista previa';
+
+  if (mediaType === 'imagenes') {
+    let imagenes = [];
+    try {
+      imagenes = JSON.parse(btn.getAttribute('data-items') || '[]');
+    } catch (error) {
+      imagenes = [];
+    }
+    abrirImagenesReales(title, imagenes);
+    return;
+  }
+
+  if (mediaType === 'video') {
+    abrirVideoProducto(title, btn.getAttribute('data-url') || '');
   }
 });
 
@@ -1253,6 +1489,14 @@ html_template = """<!DOCTYPE html>
             </div>
           </div>
           <div class="card-footer bg-white">
+              <div class="media-actions">
+                {% if producto.FotosLista %}
+                <button type="button" class="btn btn-outline-success mediaBtn images" data-media-type="imagenes" data-title="{{ producto.Nombre|e }}" data-items='{{ producto.FotosJS|safe }}'>🖼️ Fotos</button>
+                {% endif %}
+                {% if producto.VideoURL %}
+                <button type="button" class="btn btn-outline-primary mediaBtn video" data-media-type="video" data-title="{{ producto.Nombre|e }}" data-url="{{ producto.VideoURL|e }}">🎬 Video</button>
+                {% endif %}
+              </div>
             <div class="d-flex gap-2">
               <button class="btn btn-outline-danger flex-grow-1 favoriteBtn" data-nombre="{{ producto.Nombre }}" data-precio="{{ (producto.PrecioRebaja if producto.PrecioRebaja is not none and producto.PrecioRebaja > 0 else producto.Precio) }}" data-url="{{ producto.ImagenURL }}">❤️ Favorito</button>
               <a href="https://wa.me/526678191185?text=¡Estoy+interesado+en+{{ producto.Nombre|urlencode }}%0APrecio:+{{ (producto.PrecioRebaja if producto.PrecioRebaja is not none and producto.PrecioRebaja > 0 else producto.Precio)|urlencode }}%0AURL:+{{ producto.ImagenURL|urlencode }}" class="btn whatsapp-btn text-white flex-grow-1" target="_blank">📱 Contactar</a>
@@ -1287,6 +1531,19 @@ html_template = """<!DOCTYPE html>
     </div>
   </div>
   
+  <!-- Modal Media -->
+  <div class="modal fade" id="mediaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="mediaModalTitle">Vista previa</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body" id="mediaModalBody"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Imagen Ampliada -->
   <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">

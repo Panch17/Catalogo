@@ -29,6 +29,110 @@ function toggleDarkMode() {
   localStorage.setItem('darkMode', isDark);
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function abrirMediaModal(titulo, contenidoHtml) {
+  const modalTitle = document.getElementById('mediaModalTitle');
+  const modalBody = document.getElementById('mediaModalBody');
+  const modalElement = document.getElementById('mediaModal');
+
+  if (!modalTitle || !modalBody || !modalElement) {
+    return;
+  }
+
+  modalTitle.textContent = titulo || 'Vista previa';
+  modalBody.innerHTML = contenidoHtml;
+
+  let modal = bootstrap.Modal.getInstance(modalElement);
+  if (!modal) {
+    modal = new bootstrap.Modal(modalElement);
+  }
+  modal.show();
+}
+
+function abrirImagenesReales(titulo, imagenes) {
+  const lista = Array.isArray(imagenes) ? imagenes.filter(Boolean) : [];
+
+  if (lista.length === 0) {
+    abrirMediaModal(titulo, '<div class="media-empty"><p class="mb-0">No hay imágenes reales para mostrar.</p></div>');
+    return;
+  }
+
+  if (lista.length === 1) {
+    const imagen = escapeHtml(lista[0]);
+    const contenido = `
+      <div class="media-modal-preview">
+        <img src="${imagen}" class="img-fluid rounded-4 w-100" alt="${escapeHtml(titulo)}" loading="lazy" onerror="this.outerHTML='<div class='media-empty'>No se pudo cargar la imagen.</div>'">
+      </div>
+    `;
+    abrirMediaModal(titulo, contenido);
+    return;
+  }
+
+  const items = lista
+    .map((imagen, index) => `
+      <div class="carousel-item ${index === 0 ? 'active' : ''}">
+        <img src="${escapeHtml(imagen)}" class="d-block w-100" alt="${escapeHtml(`${titulo} ${index + 1}`)}" loading="lazy" onerror="this.outerHTML='<div class='media-empty'>No se pudo cargar la imagen.</div>'">
+      </div>
+    `)
+    .join('');
+
+  const indicadores = lista
+    .map((_, index) => `<button type="button" data-bs-target="#mediaCarousel" data-bs-slide-to="${index}" class="${index === 0 ? 'active' : ''}" aria-current="${index === 0 ? 'true' : 'false'}" aria-label="Imagen ${index + 1}"></button>`)
+    .join('');
+
+  const contenido = `
+    <div class="media-modal-preview">
+      <div id="mediaCarousel" class="carousel slide media-carousel" data-bs-ride="carousel" data-bs-touch="true">
+        <div class="carousel-indicators">
+          ${indicadores}
+        </div>
+        <div class="carousel-inner rounded-4 overflow-hidden">
+          ${items}
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#mediaCarousel" data-bs-slide="prev">
+          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Anterior</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#mediaCarousel" data-bs-slide="next">
+          <span class="carousel-control-next-icon" aria-hidden="true"></span>
+          <span class="visually-hidden">Siguiente</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  abrirMediaModal(titulo, contenido);
+}
+
+function convertirVideoAiframe(url) {
+  const safeUrl = escapeHtml(url);
+  if (/youtu\.be|youtube\.com/i.test(url)) {
+    const videoIdMatch = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{6,})/i);
+    const videoId = videoIdMatch ? videoIdMatch[1] : '';
+    if (videoId) {
+      return `<div class="ratio ratio-16x9 media-modal-preview"><iframe src="https://www.youtube.com/embed/${videoId}" title="Video del producto" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>`;
+    }
+  }
+  return `<div class="media-modal-preview"><video class="media-video-player" controls playsinline preload="metadata" src="${safeUrl}"></video></div>`;
+}
+
+function abrirVideoProducto(titulo, url) {
+  if (!url) {
+    abrirMediaModal(titulo, '<div class="media-empty"><p class="mb-0">No hay video disponible para este producto.</p></div>');
+    return;
+  }
+
+  abrirMediaModal(titulo, convertirVideoAiframe(url));
+}
+
 function initFavoritos() {
   const favoritos = JSON.parse(localStorage.getItem('favoritos')) || [];
   actualizarContadorFavoritos(favoritos.length);
@@ -70,6 +174,32 @@ document.addEventListener('click', function(e) {
 
     localStorage.setItem('favoritos', JSON.stringify(favoritos));
     actualizarContadorFavoritos(favoritos.length);
+  }
+});
+
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.mediaBtn');
+  if (!btn) {
+    return;
+  }
+
+  e.preventDefault();
+  const mediaType = btn.getAttribute('data-media-type');
+  const title = btn.getAttribute('data-title') || 'Vista previa';
+
+  if (mediaType === 'imagenes') {
+    let imagenes = [];
+    try {
+      imagenes = JSON.parse(btn.getAttribute('data-items') || '[]');
+    } catch (error) {
+      imagenes = [];
+    }
+    abrirImagenesReales(title, imagenes);
+    return;
+  }
+
+  if (mediaType === 'video') {
+    abrirVideoProducto(title, btn.getAttribute('data-url') || '');
   }
 });
 

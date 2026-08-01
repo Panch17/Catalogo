@@ -559,6 +559,81 @@ body.dark-mode .modal-header {
   object-fit: contain;
 }
 
+.media-actions {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mediaBtn {
+  border-radius: 14px;
+  font-weight: 800;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease, color 0.25s ease;
+}
+
+.mediaBtn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.12);
+}
+
+.mediaBtn.images {
+  border-color: var(--secondary-color);
+  color: var(--secondary-color);
+}
+
+.mediaBtn.images:hover {
+  background-color: rgba(0, 184, 148, 0.08);
+}
+
+.mediaBtn.video {
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+}
+
+.mediaBtn.video:hover {
+  background-color: rgba(29, 78, 216, 0.08);
+}
+
+body.dark-mode .mediaBtn.images {
+  color: #5eead4;
+  border-color: #5eead4;
+}
+
+body.dark-mode .mediaBtn.video {
+  color: #93c5fd;
+  border-color: #93c5fd;
+}
+
+.media-modal-preview {
+  background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), rgba(15, 23, 42, 0.02));
+  border-radius: 18px;
+  padding: 12px;
+}
+
+.media-carousel .carousel-item img {
+  max-height: 68vh;
+  width: 100%;
+  object-fit: contain;
+  border-radius: 16px;
+}
+
+.media-video-player {
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 16px;
+  background: #000;
+}
+
+.media-empty {
+  text-align: center;
+  padding: 34px 16px;
+  color: #64748b;
+}
+
+body.dark-mode .media-empty {
+  color: #cbd5e1;
+}
+
 @media (max-width: 768px) {
   .stats-strip {
     grid-template-columns: 1fr;
