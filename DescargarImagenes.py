@@ -25,6 +25,25 @@ def get_safe_filename(url):
     return f"img_{digest}.jpg"
 
 
+def extract_image_urls(df):
+    columns_to_check = [col for col in ["ImagenURL", "Fotos"] if col in df.columns]
+    if not columns_to_check:
+        return []
+
+    urls = []
+    seen = set()
+
+    for col_name in columns_to_check:
+        for raw in df[col_name].fillna("").astype(str).tolist():
+            for part in raw.split(";"):
+                url = part.strip()
+                if url and url not in seen:
+                    urls.append(url)
+                    seen.add(url)
+
+    return urls
+
+
 def download_images(repo_dir):
     datos_dir = repo_dir / "datos"
     excel_path = datos_dir / "productos.xlsx"
@@ -41,19 +60,14 @@ def download_images(repo_dir):
         print(f"Failed to read Excel: {exc}")
         return 1
 
-    if "ImagenURL" not in df.columns:
-        print("Column ImagenURL not found in Excel.")
+    if "ImagenURL" not in df.columns and "Fotos" not in df.columns:
+        print("Columns ImagenURL and Fotos not found in Excel.")
         return 1
 
-    urls = []
-    for raw in df["ImagenURL"].fillna("").astype(str).tolist():
-        for part in raw.split(";"):
-            url = part.strip()
-            if url:
-                urls.append(url)
+    urls = extract_image_urls(df)
 
     if not urls:
-        print("No image URLs found.")
+        print("No image URLs found in ImagenURL or Fotos.")
         return 0
 
     print(f"Found {len(urls)} URLs. Downloading...")
