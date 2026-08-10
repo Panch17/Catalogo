@@ -4,6 +4,8 @@ from jinja2 import Template
 import os
 import webbrowser
 import sys
+from pathlib import Path
+import urllib.parse
 
 # Configurar codificación UTF-8 para la consola
 if sys.stdout.encoding != 'utf-8':
@@ -44,11 +46,72 @@ def dividir_medios(valor):
         return []
     return [parte.strip() for parte in texto.split(";") if parte.strip()]
 
+
+def validar_urls_columnas(df, columnas, datos_dir):
+  hallazgos = []
+
+  for indice, fila in df.iterrows():
+    excel_fila = int(fila.get('_ExcelFila', indice + 2))
+    nombre = limpiar_texto(fila.get('Nombre', '')) or '(Sin nombre)'
+
+    for columna in columnas:
+      bruto = limpiar_texto(fila.get(columna, ''))
+      if not bruto:
+        continue
+
+      if ';;' in bruto:
+        hallazgos.append(
+          {
+            'FilaExcel': excel_fila,
+            'Nombre': nombre,
+            'Columna': columna,
+            'TipoError': 'Separador duplicado (;;)',
+            'Valor': bruto,
+          }
+        )
+
+      for posicion, parte in enumerate(bruto.split(';'), start=1):
+        url = parte.strip()
+
+        if not url:
+          hallazgos.append(
+            {
+              'FilaExcel': excel_fila,
+              'Nombre': nombre,
+              'Columna': columna,
+              'TipoError': 'Elemento vacio entre separadores',
+              'Valor': bruto,
+            }
+          )
+          continue
+
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme.lower() not in {'http', 'https'} or not parsed.netloc:
+          hallazgos.append(
+            {
+              'FilaExcel': excel_fila,
+              'Nombre': nombre,
+              'Columna': columna,
+              'TipoError': f'URL invalida en posicion {posicion}',
+              'Valor': url,
+            }
+          )
+
+  if not hallazgos:
+    print('✅ No se detectaron errores de formato en ImagenURL/Fotos/Videos.')
+    return
+
+  reporte_path = os.path.join(datos_dir, 'reporte_urls_invalidas.csv')
+  pd.DataFrame(hallazgos).to_csv(reporte_path, index=False, encoding='utf-8-sig')
+  print(f"⚠️ Se detectaron {len(hallazgos)} posibles errores de URLs.")
+  print(f"📄 Revisa el reporte: {reporte_path}")
+
 # =============================================
 # 1. LEER EL ARCHIVO EXCEL/CSV Y LIMPIAR DATOS
 # =============================================
 try:
     df = pd.read_excel(EXCEL_PATH)
+    df['_ExcelFila'] = df.index + 2
     df = df.sample(frac=1).reset_index(drop=True)  # Mezcla aleatoriamente los productos
     df['Precio'] = df['Precio'].replace(r'[\$,]', '', regex=True).astype(float)
     df['PrecioRebaja'] = pd.to_numeric(df.get('PrecioRebaja'), errors='coerce')
@@ -73,6 +136,7 @@ try:
         df.loc[df['Categoria'].str.strip().str.lower() == 'seguridad', 'Categoria'] = 'Otros'
     else:
         df['Categoria'] = 'Otros'
+    validar_urls_columnas(df, ['ImagenURL', 'Fotos', 'Videos'], DATOS_DIR)
     df['FotosLista'] = df['Fotos'].apply(dividir_medios)
     df['VideosLista'] = df['Videos'].apply(dividir_medios)
     df['VideoURL'] = df['VideosLista'].apply(lambda items: items[0] if items else '')
@@ -123,6 +187,7 @@ body.dark-mode {
     radial-gradient(circle at 85% 20%, rgba(0, 184, 148, 0.2), transparent 38%),
     linear-gradient(135deg, var(--bg-dark) 0%, #020617 100%);
   color: #e2e8f0;
+  color-scheme: dark;
 }
 
 .hero-panel {
@@ -493,9 +558,36 @@ body.dark-mode .card-footer.bg-white {
 
 body.dark-mode .form-control,
 body.dark-mode .form-select {
-  background-color: rgba(255, 255, 255, 0.08);
-  border-color: rgba(148, 163, 184, 0.3);
-  color: #e2e8f0;
+  background-color: #0f172a;
+  border-color: rgba(148, 163, 184, 0.35);
+  color: #f8fafc;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+body.dark-mode .form-control::placeholder {
+  color: rgba(248, 250, 252, 0.8);
+}
+
+body.dark-mode .form-control,
+body.dark-mode .form-select {
+  -webkit-text-fill-color: #f8fafc;
+}
+
+body.dark-mode .form-select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23f8fafc' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m1 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 16px 12px;
+}
+
+body.dark-mode .form-select option {
+  background-color: Canvas;
+  color: CanvasText;
+}
+
+body.dark-mode .form-select option:checked {
+  background-color: #1d4ed8;
+  color: #ffffff;
 }
 
 .form-control:focus,
@@ -1447,7 +1539,7 @@ html_template = """<!DOCTYPE html>
     <div class="carousel-inner">
       {% for img in imagenes %}
         <div class="carousel-item {% if loop.first %}active{% endif %}">
-          <img src="{{ img.strip() }}" class="d-block w-100 card-img-top" alt="{{ producto.Nombre }}" loading="lazy" onerror="this.src='{{ producto.LinkCompra|urlencode }}'">
+          <img src="{{ img.strip() }}" class="d-block w-100 card-img-top" alt="{{ producto.Nombre }}" loading="lazy" onerror="this.onerror=null;this.style.display='none';">
         </div>
       {% endfor %}
     </div>
@@ -1466,7 +1558,7 @@ html_template = """<!DOCTYPE html>
     </button>
   </div>
 {% else %}
-  <img src="{{ imagenes[0] }}" class="card-img-top" alt="{{ producto.Nombre }}" loading="lazy" onerror="this.src='{{ producto.LinkCompra|urlencode }}'">
+  <img src="{{ imagenes[0] }}" class="card-img-top" alt="{{ producto.Nombre }}" loading="lazy" onerror="this.onerror=null;this.style.display='none';">
 {% endif %}
           <div class="card-body">
             <h5 class="card-title nombre">{{ producto.Nombre }}</h5>
@@ -1575,7 +1667,23 @@ html_template = """<!DOCTYPE html>
   <!-- Botón Ir Arriba -->
   <button id="backToTop" class="back-to-top" title="Ir arriba" aria-label="Ir arriba">↑</button>
 
-  <script src="https://cdn.counter.dev/script.js" data-id="a385688b-fca9-43be-90f6-bf9fff769d46" data-utcoffset="-7"></script>
+  <script>
+    (function () {
+      // Evita errores de CORS/cargas colgadas en local y pruebas.
+      const isLocal =
+        window.location.protocol === 'file:' ||
+        window.location.hostname === 'localhost' ||
+        window.location.hostname === '127.0.0.1';
+      if (isLocal) return;
+      const s = document.createElement('script');
+      s.src = 'https://cdn.counter.dev/script.js';
+      s.async = true;
+      s.defer = true;
+      s.setAttribute('data-id', 'a385688b-fca9-43be-90f6-bf9fff769d46');
+      s.setAttribute('data-utcoffset', '-7');
+      document.head.appendChild(s);
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/catalog.js"></script>
 </body>
@@ -1605,6 +1713,6 @@ try:
         f.write(html_output)
     print(f"✅ Catálogo generado en: {OUTPUT_HTML}")
     print("📂 Abre el archivo en tu navegador para verlo.")
-    webbrowser.open(f"file://{OUTPUT_HTML}")
+    webbrowser.open(Path(OUTPUT_HTML).resolve().as_uri())
 except Exception as e:
     print(f"❌ Error al generar los archivos: {e}")
