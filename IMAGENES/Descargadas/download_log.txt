@@ -1,0 +1,2 @@
+http://panchochacharas.netlify.app/Imagenes/WhatsApp%20Image%202026-09-06%20at%203.18.50%20PM.jpeg	HTTP Error 404: Not Found
+https://panchochacharas.netlify.app/imagenes/WhatsApp%20Image%202026-09-06%20at%202.46.45%20PM.jpeg	HTTP Error 404: Not Found

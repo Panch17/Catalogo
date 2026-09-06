@@ -8,6 +8,12 @@ from pathlib import Path
 import pandas as pd
 
 
+EXCLUDED_IMAGE_HOSTS = {
+    "panchochacharas.netlify.app",
+    "http://panchochacharas.netlify.app",
+}
+
+
 def get_safe_filename(url):
     parsed = urllib.parse.urlparse(url)
     name = os.path.basename(parsed.path)
@@ -38,6 +44,10 @@ def extract_image_urls(df):
             for part in raw.split(";"):
                 url = part.strip()
                 if url and url not in seen:
+                    parsed = urllib.parse.urlsplit(url)
+                    hostname = parsed.hostname.lower() if parsed.hostname else ""
+                    if hostname in EXCLUDED_IMAGE_HOSTS:
+                        continue
                     urls.append(url)
                     seen.add(url)
 
@@ -70,7 +80,7 @@ def download_images(repo_dir):
         print("No image URLs found in ImagenURL or Fotos.")
         return 0
 
-    print(f"Found {len(urls)} URLs. Downloading...")
+    print(f"Found {len(urls)} URLs after exclusions. Downloading...")
 
     failed = []
     skipped = 0
