@@ -1450,7 +1450,7 @@ if (hiddenTrigger) {
     if (clickCount === 5) {
       clickCount = 0;
       const password = prompt('Ingrese la contrasena:');
-      if (password === 'Zombie') {
+      if (password === 'Iris') {
         toggleAdminMode(true);
       } else {
         alert('Contrasena incorrecta');
